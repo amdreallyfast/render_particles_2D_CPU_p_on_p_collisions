@@ -1,5 +1,16 @@
 #include "ParticleUpdater.h"
 
+struct QuadTreeNode
+{
+
+};
+
+
+
+
+
+
+
 /*-----------------------------------------------------------------------------------------------
 Description:
     Ensures that the object starts object with initialized values.

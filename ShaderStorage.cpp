@@ -158,6 +158,12 @@ void ShaderStorage::AddShaderFile(const std::string &programKey, const std::stri
     shaderFile.close();
     std::string fileContents = shaderData.str();
 
+    if (fileContents.length() == 0)
+    {
+        fprintf(stderr, "Shader file '%s' is empty\n", filePath.c_str());
+        return;
+    }
+
     // OpenGL takes pointers to file contents and pointers to file content lengths, so use arrays
     const GLchar *bytes[] = { fileContents.c_str() };
     const GLint strLengths[] = { (int)fileContents.length() };
@@ -243,7 +249,10 @@ GLuint ShaderStorage::LinkShader(const std::string &programKey)
     glGetProgramiv(programId, GL_LINK_STATUS, &isLinked);
     if (isLinked == GL_FALSE)
     {
-        fprintf(stderr, "Program '%s' didn't compile\n", programKey.c_str());
+        GLchar errLog[128];
+        GLsizei *logLen = 0;
+        glGetProgramInfoLog(programId, 128, logLen, errLog);
+        fprintf(stderr, "Program '%s' didn't link: '%s'\n", programKey.c_str(), errLog);
         glDeleteProgram(programId);
         return 0;
     }
