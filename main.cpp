@@ -38,7 +38,6 @@
 
 // for basic OpenGL stuff
 #include "OpenGlErrorHandling.h"
-//#include "GenerateShader.h"
 #include "ShaderStorage.h"
 
 // for drawing shapes
@@ -155,7 +154,6 @@ void Init()
     polygonCorners.push_back(glm::vec2(-0.5f, +0.25f));
     gpParticleRegionPolygon = new ParticleRegionPolygon(polygonCorners);
     gpParticleRegionPolygon->SetTransform(gRegionTransformMatrix);
-
 
     // stick the point emitter in the center (changing this would only require some addition/subtraction from the "circle center"
     gpParticleEmitterPoint = new ParticleEmitterPoint(circleCenter, 0.3f, 0.5f);

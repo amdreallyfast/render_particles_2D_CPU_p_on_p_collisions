@@ -14,12 +14,14 @@ struct Particle
 {
     Particle() : 
         // glm structures already have "set to 0" constructors
+        _currentQuadTreeIndex(0),
         _isActive(0)
     {
     }
 
     glm::vec2 _position;
     glm::vec2 _velocity;
+    int _currentQuadTreeIndex;
 
     // Note: Booleans cannot be uploaded to the shader 
     // (https://www.opengl.org/sdk/docs/man/html/glVertexAttribPointer.xhtml), so send the 
