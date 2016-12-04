@@ -6,7 +6,7 @@ struct QuadTreeNode
 {
     QuadTreeNode() :
         _numCurrentParticles(0),
-        _startingParticleIndex(0),
+        //_startingParticleIndex(0),
         _inUse(0),
         _isSubdivided(0),
         _childNodeIndexTopLeft(-1),
@@ -31,7 +31,7 @@ struct QuadTreeNode
 
     int _indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE];
     int _numCurrentParticles;
-    int _startingParticleIndex;
+    //int _startingParticleIndex;   // for the GPU version; keep around for copy-paste later
 
     int _inUse;
     int _isSubdivided;
@@ -69,7 +69,7 @@ int numNodesInUse = NUM_STARTING_NODES;
 // TODO: On GPU version, start with an 8x8 array of nodes and have a work item operating on each possible node
 
 // TODO: header
-// Note: I considered and heavily entertained the idea of starting every frame with one node and subdividing as necessary, but I abandoned that idea because of the additional load necessary to determine neighboring nodes during the subdivision.  By starting with a pre-subdivided array
+// Note: I considered and heavily entertained the idea of starting every frame with one node and subdividing as necessary, but I abandoned that idea because of the additional load necessary to determine neighboring nodes during the subdivision.  By starting with a pre-subdivided array, I have neighboring nodes already in place, so when subdividing, the child nodes don't need to calculate anything new, but rather simply pull from their parents' information.
 void InitializeTree(const glm::vec2 &particleRegionCenter, float particleRegionRadius)
 {
     float xIncrement = 2 * particleRegionRadius / NUM_COLUMNS_IN_TREE_INITIAL;
@@ -164,7 +164,7 @@ void ResetTree()
     {
         QuadTreeNode &node = allQuadTreeNodes[nodeIndex];
         node._numCurrentParticles = 0;
-        node._startingParticleIndex = 0;
+        //node._startingParticleIndex = 0;
         node._isSubdivided = 0;
         node._childNodeIndexTopLeft = -1;
         node._childNodeIndexTopRight = -1;
@@ -215,7 +215,7 @@ void SubdivideNode(int nodeIndex)
     childTopLeft._neighborIndexBottomRight = childNodeIndexBottomRight;
     childTopLeft._neighborIndexBottom = childNodeIndexBottomLeft;
     childTopLeft._neighborIndexBottomLeft = node._neighborIndexLeft;
-    childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
+    //childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
 
     QuadTreeNode &childTopRight = allQuadTreeNodes[childNodeIndexTopRight];
     childTopRight._neighborIndexLeft = childNodeIndexTopLeft;
@@ -226,7 +226,7 @@ void SubdivideNode(int nodeIndex)
     childTopRight._neighborIndexBottomRight = node._neighborIndexRight;
     childTopRight._neighborIndexBottom = childNodeIndexBottomRight;
     childTopRight._neighborIndexBottomLeft = childNodeIndexBottomLeft;
-    childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
+    //childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
 
     QuadTreeNode &childBottomRight = allQuadTreeNodes[childNodeIndexBottomRight];
     childBottomRight._neighborIndexLeft = childNodeIndexBottomLeft;
@@ -237,7 +237,7 @@ void SubdivideNode(int nodeIndex)
     childBottomRight._neighborIndexBottomRight = node._neighborIndexBottomRight;
     childBottomRight._neighborIndexBottom = node._neighborIndexBottom;
     childBottomRight._neighborIndexBottomLeft = node._neighborIndexBottom;
-    childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
+    //childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
 
     QuadTreeNode &childBottomLeft = allQuadTreeNodes[childNodeIndexBottomLeft];
     childBottomLeft._neighborIndexLeft = node._neighborIndexLeft;
@@ -248,7 +248,7 @@ void SubdivideNode(int nodeIndex)
     childBottomLeft._neighborIndexBottomRight = node._neighborIndexBottom;
     childBottomLeft._neighborIndexBottom = node._neighborIndexBottom;
     childBottomLeft._neighborIndexBottomLeft = node._neighborIndexBottomLeft;
-    childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
+    //childTopLeft._startingParticleIndex = node._indicesForContainedParticles[MAX_PARTICLES_PER_QUAD_TREE_NODE - 1];
 
 }
 
