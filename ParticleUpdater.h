@@ -25,13 +25,12 @@ public:
 
     unsigned int Update(std::vector<Particle> &particleCollection, const unsigned int startIndex, 
         const unsigned int numToUpdate, const float deltaTimeSec) const;
-    void ResetAllParticles(std::vector<Particle> &particleCollection);
+    void ResetAllParticles(std::vector<Particle> &particleCollection) const;
 
 private:
     // the form "const something *" means that it is a pointer to a const something, so the 
     // pointer can be changed for a new region or emitter, but the region or emitter itself 
     // can't be altered
-
     const IParticleRegion *_pRegion;
 
     // use arrays instead of std::vector<...> for the sake of cache coherency

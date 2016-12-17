@@ -611,20 +611,19 @@ unsigned int ParticleUpdater::Update(std::vector<Particle> &particleCollection,
         return 0;
     }
 
-    glm::vec2 particleRegionCenter(0.3f, 0.3f);
-    float particleRegionRadius = 0.5f;
+    //glm::vec2 particleRegionCenter(0.3f, 0.3f);
+    //float particleRegionRadius = 0.5f;
 
-    static ParticleQuadTree tree;
-    static bool firstTime = true;
-    if (firstTime)
-    {
-        firstTime = false;
-        tree.InitializeTree(particleRegionCenter, particleRegionRadius);
-    }
-    else
-    {
-        tree.ResetTree();
-    }
+    //static bool firstTime = true;
+    //if (firstTime)
+    //{
+    //    firstTime = false;
+    //    _quadTree.InitializeTree(particleRegionCenter, particleRegionRadius);
+    //}
+    //else
+    //{
+    //    _quadTree.ResetTree();
+    //}
     //tree.AddParticlestoTree(&particleCollection);
     //allParticles = &particleCollection;
     //InitializeTree(particleRegionCenter, particleRegionRadius);
@@ -712,7 +711,7 @@ Returns:    None
 Exception:  Safe
 Creator:    John Cox (8-13-2016)
 -----------------------------------------------------------------------------------------------*/
-void ParticleUpdater::ResetAllParticles(std::vector<Particle> &particleCollection)
+void ParticleUpdater::ResetAllParticles(std::vector<Particle> &particleCollection) const
 {
     // reset all particles evenly 
     // Note: I could do a weighted fancy algorithm and account for the "particles emitted per frame" for each emitter, but this is just a demo program.

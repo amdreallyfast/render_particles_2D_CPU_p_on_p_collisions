@@ -4,6 +4,7 @@
 #include "Particle.h"
 #include "glm\vec2.hpp"
 #include "ParticleQuadTreeNode.h"
+#include "GeometryData.h"
 
 class ParticleQuadTree
 {
@@ -15,6 +16,10 @@ public:
     bool AddParticleToNode(int particleIndex, int nodeIndex); // ??private??
     bool SubdivideNode(int nodeIndex);  //??private??
     void AddParticlestoTree(std::vector<Particle> *particleCollection);
+    
+    // ??combine somehow??
+    int GetMaxTreeSize() const { return _MAX_NODES; }
+    void GenerateGeometry(GeometryData *putDataHere, bool firstTime = false);
 
 private:
 

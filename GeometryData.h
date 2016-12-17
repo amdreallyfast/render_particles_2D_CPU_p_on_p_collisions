@@ -1,19 +1,7 @@
 #pragma once
 
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
 #include <vector>
-
-/*-----------------------------------------------------------------------------------------------
-Description:
-    Stores all info necessary to draw a single vertex.
-Creator:    John Cox (6-12-2016)
------------------------------------------------------------------------------------------------*/
-struct MyVertex
-{
-    glm::vec2 _position;
-    glm::vec2 _texturePosition;
-};
+#include "MyVertex.h"
 
 /*-----------------------------------------------------------------------------------------------
 Description:
@@ -24,6 +12,7 @@ Creator:    John Cox (6-12-2016)
 struct GeometryData
 {
     GeometryData();
+    ~GeometryData();
     void Init(unsigned int programId);
 
 

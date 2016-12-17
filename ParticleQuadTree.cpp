@@ -1,5 +1,9 @@
 
 #include "ParticleQuadTree.h"
+#include "glload/include/glload/gl_4_4.h"   // for GL draw style in GenerateGeometry(...)
+
+
+
 
 // a temporary helper value
 // Note: In the GPU version, the "all particles" array will be readily available as a global.  The GPU cannot pass items by reference or pointer, so to avoid having this CPU version of the algorithm drift too much from the GPU version, I will use this pointer as a temporary value that will mimic the compute shader's global "all particles".
@@ -474,4 +478,68 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
     }
 
     printf("");
+}
+
+// TODO: header
+// Note: There are many duplicate nodes and lines, but this is just a demo.  I won't concern myself with trying to optimize this rendering aspect of the program.
+void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime)
+{
+    // the data changes potentially every frame, so have to clear out the existing data
+    putDataHere->_verts.clear();
+    putDataHere->_indices.clear();
+
+    // give it a load of dummy data the first time that this is called
+    // Note: The first time that this is called is during setup so that the GeometryData object can allocate a correctly sized vertex buffer on the GPU.  The vertex buffer needs the buffer to be as large as it could possibly be at this time.  I don't want to have to deal with resizing the buffer at runtime when I could easily give it a maximum size at the start.
+    if (firstTime)
+    {
+        putDataHere->_drawStyle = GL_LINES;
+
+        // 4 corners per box
+        putDataHere->_verts.resize(_MAX_NODES * 4);
+
+        // 4 lines per box, 2 vertices per line
+        putDataHere->_indices.resize(_MAX_NODES * 4 * 2);
+    }
+    else
+    {
+        unsigned short vertexIndex = 0;
+        for (size_t nodeCounter = 0; nodeCounter < _numNodesInUse; nodeCounter++)
+        {
+            QuadTreeNode &node = _allQuadTreeNodes[nodeCounter];
+
+            // 4 corners per box
+            MyVertex topLeft;
+            unsigned short topLeftIndex = vertexIndex++;
+            topLeft._position = glm::vec2(node._leftEdge, node._topEdge);
+            putDataHere->_verts.push_back(topLeft);
+
+            MyVertex topRight;
+            unsigned short topRightIndex = vertexIndex++;
+            topRight._position = glm::vec2(node._rightEdge, node._topEdge);
+            putDataHere->_verts.push_back(topRight);
+
+            MyVertex bottomRight;
+            unsigned short bottomRightIndex = vertexIndex++;
+            bottomRight._position = glm::vec2(node._rightEdge, node._bottomEdge);
+            putDataHere->_verts.push_back(bottomRight);
+
+            MyVertex bottomLeft;
+            unsigned short bottomeLeftIndex = vertexIndex++;
+            bottomLeft._position = glm::vec2(node._leftEdge, node._bottomEdge);
+            putDataHere->_verts.push_back(bottomLeft);
+
+            // 4 lines per box, 2 vertices per line
+            // Note: These are lines, so there is no concern about clockwise or counterclockwise
+            putDataHere->_indices.push_back(topLeftIndex);
+            putDataHere->_indices.push_back(topRightIndex);
+            putDataHere->_indices.push_back(topRightIndex);
+            putDataHere->_indices.push_back(bottomRightIndex);
+            putDataHere->_indices.push_back(bottomRightIndex);
+            putDataHere->_indices.push_back(bottomeLeftIndex);
+            putDataHere->_indices.push_back(bottomeLeftIndex);
+            putDataHere->_indices.push_back(topLeftIndex);
+        }
+
+    }
+
 }

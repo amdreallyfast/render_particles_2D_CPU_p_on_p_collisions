@@ -51,6 +51,7 @@
 #include "ParticleEmitterBar.h"
 #include "ParticleStorage.h"
 #include "ParticleUpdater.h"
+#include "ParticleQuadTree.h"
 
 // for moving the shapes around in window space
 #include "glm/gtc/matrix_transform.hpp"
@@ -72,6 +73,7 @@ GLint gUnifMatrixTransformLoc;
 // or behind door number 3 so that collision boxes could get at the vertex data
 GeometryData gCircleGeometry;
 GeometryData gPolygonGeometry;
+GeometryData gQuadTreeGeometry;
 
 // in a bigger program, this would somehow be encapsulated and associated with both the circle
 // geometry and the circle particle region, and ditto for the polygon
@@ -83,6 +85,25 @@ IParticleRegion *gpParticleRegionPolygon;
 IParticleEmitter *gpParticleEmitterPoint;
 IParticleEmitter *gpParticleEmitterBar;
 ParticleUpdater gParticleUpdater;
+ParticleQuadTree gParticleQuadTree;
+
+
+// TODO: change how things are run around here
+// - particle storage (just exists)
+// - multiple emitter handler (num particles each frame per emitter)
+// - particle state updater (pos and "is active")
+// - quad tree 
+// - particle collider
+// - each frame
+//  - emit new particles (takes particle collection)
+//  - particle position and "is active" update (takes particle collection, particle region, delta time)
+//  - region bound check (takes particle collection)
+//  - reset quad tree, then generate new (takes particle collection)
+//  - collision check gives new velocity (takes particle collection, quad tree)
+// TODO: add "num collisions this frame" to each particle, reset each frame in "particle state updater"
+
+
+
 
 // divide between the circle and the polygon regions
 // Note: 
@@ -192,6 +213,15 @@ void Init()
 
     GeneratePolygonWireframe(&gPolygonGeometry, polygonCorners, false);
     gPolygonGeometry.Init(geometryProgramId);
+
+    // same radius and center as "circle particle region" 
+    // TODO: make this info more general and not so specific to this particlar part of Init();
+    glm::vec2 particleRegionCenter = glm::vec2(gRegionTransformMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    float particleRegionRadius = 0.5f;
+
+    gParticleQuadTree.InitializeTree(particleRegionCenter, particleRegionRadius);
+    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry, true);
+    gQuadTreeGeometry.Init(geometryProgramId);
 
 
     // the timer will be used for framerate calculations
@@ -379,21 +409,8 @@ Creator:    John Cox (2-13-2016)
 -----------------------------------------------------------------------------------------------*/
 void CleanupAll()
 {
-    // these deletion functions need the buffer ID, but they take a (void *) for the second 
-    // argument in the event that the user has an array of IDs (legacy OpenGL stuff that isn't 
-    // used much anymore, if at all), so pass in the buffer ID's address and tell it to delete 1
-    // Note: The second argument is treated like an array, so if I were to pass in the address 
-    // of a single GLuint and tell it to delete 2, then it will either (1) blow up or 
-    // (2) silently delete something I didn't want.  Both are bad, so treat it nice.
-    // Also Note: If I attempt to delete an ID that has already been deleted, that is ok.  OpenGL
+    // Note: If I attempt to delete an ID that has already been deleted, that is ok.  OpenGL
     // will silently swallow that.
-    glDeleteBuffers(1, &gCircleGeometry._arrayBufferId);
-    glDeleteBuffers(1, &gCircleGeometry._elementBufferId);
-    glDeleteVertexArrays(1, &gCircleGeometry._vaoId);
-    glDeleteBuffers(1, &gPolygonGeometry._arrayBufferId);
-    glDeleteBuffers(1, &gPolygonGeometry._elementBufferId);
-    glDeleteVertexArrays(1, &gPolygonGeometry._vaoId);
-
     delete(gpParticleRegionCircle);
     //delete(gpParticleRegionPolygon);
     delete(gpParticleEmitterBar);

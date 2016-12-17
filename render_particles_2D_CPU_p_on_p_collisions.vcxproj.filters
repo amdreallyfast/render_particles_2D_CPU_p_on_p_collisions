@@ -100,6 +100,9 @@
     <ClInclude Include="ParticleQuadTreeNode.h">
       <Filter>Particles</Filter>
     </ClInclude>
+    <ClInclude Include="MyVertex.h">
+      <Filter>Solids</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaderGeometry.frag" />

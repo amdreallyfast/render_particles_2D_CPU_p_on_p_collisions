@@ -175,6 +175,7 @@
     <ClInclude Include="FreeTypeAtlas.h" />
     <ClInclude Include="FreeTypeEncapsulated.h" />
     <ClInclude Include="GeometryData.h" />
+    <ClInclude Include="MyVertex.h" />
     <ClInclude Include="ParticleQuadTree.h" />
     <ClInclude Include="IParticleEmitter.h" />
     <ClInclude Include="IParticleRegion.h" />

@@ -22,6 +22,22 @@ GeometryData::GeometryData() :
 
 /*-----------------------------------------------------------------------------------------------
 Description:
+    Ensures that class resources are released.  This should have been made months ago, but it
+    wasn't.  
+Parameters: None
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+GeometryData::~GeometryData()
+{
+    glDeleteBuffers(1, &_arrayBufferId);
+    glDeleteBuffers(1, &_elementBufferId);
+    glDeleteVertexArrays(1, &_vaoId);
+}
+
+/*-----------------------------------------------------------------------------------------------
+Description:
     Generates a vertex buffer, index buffer, and vertex array object (contains vertex array
     attributes) for the provided geometry data.
 Parameters:
