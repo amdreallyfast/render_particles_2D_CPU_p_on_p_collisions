@@ -153,6 +153,7 @@
     <ClCompile Include="OpenGlErrorHandling.cpp" />
     <ClCompile Include="ParticleEmitterBar.cpp" />
     <ClCompile Include="ParticleEmitterPoint.cpp" />
+    <ClCompile Include="ParticleQuadTree.cpp" />
     <ClCompile Include="ParticleRegionPolygon.cpp" />
     <ClCompile Include="ParticleRegionCircle.cpp" />
     <ClCompile Include="ParticleStorage.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="FreeTypeAtlas.h" />
     <ClInclude Include="FreeTypeEncapsulated.h" />
     <ClInclude Include="GeometryData.h" />
+    <ClInclude Include="ParticleQuadTree.h" />
     <ClInclude Include="IParticleEmitter.h" />
     <ClInclude Include="IParticleRegion.h" />
     <ClInclude Include="MinMaxVelocity.h" />
@@ -181,6 +183,7 @@
     <ClInclude Include="Particle.h" />
     <ClInclude Include="ParticleEmitterBar.h" />
     <ClInclude Include="ParticleEmitterPoint.h" />
+    <ClInclude Include="ParticleQuadTreeNode.h" />
     <ClInclude Include="ParticleRegionPolygon.h" />
     <ClInclude Include="ParticleRegionCircle.h" />
     <ClInclude Include="ParticleStorage.h" />

@@ -41,6 +41,9 @@
     <ClCompile Include="Stopwatch.cpp">
       <Filter>RenderFrameRate</Filter>
     </ClCompile>
+    <ClCompile Include="ParticleQuadTree.cpp">
+      <Filter>Particles</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenGlErrorHandling.h" />
@@ -90,6 +93,12 @@
     </ClInclude>
     <ClInclude Include="Stopwatch.h">
       <Filter>RenderFrameRate</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleQuadTree.h">
+      <Filter>Particles</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleQuadTreeNode.h">
+      <Filter>Particles</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
