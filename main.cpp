@@ -247,19 +247,33 @@ void Display()
     glClearDepth(1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // update all particle locations
+    // update all particle locations and draw them
     unsigned int numActiveParticles = gParticleUpdater.Update(gParticleStorage._allParticles, 0, 
         gParticleStorage._allParticles.size(), 0.01f);
-
-    // draw the particles
     glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("particles"));
     glBindVertexArray(gParticleStorage._vaoId);
     glBindBuffer(GL_ARRAY_BUFFER, gParticleStorage._arrayBufferId);
     glBufferSubData(GL_ARRAY_BUFFER, 0, gParticleStorage._sizeBytes, gParticleStorage._allParticles.data());
     glDrawArrays(gParticleStorage._drawStyle, 0, gParticleStorage._allParticles.size());
 
-    // draw the particle region borders
+    // geometry
+    // Note: I have read that, due to variances in OpenGL implementation on different drivers, I should avoid extra calls to glUseProgram(...).  On some implementations the extra call might be ignored, on some it reloads the same program, and on others it can crash.  So I am putting the call out in front of the geometry drawing.  
     glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
+
+    // update the quad tree and draw it
+    gParticleQuadTree.ResetTree();
+    gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
+    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+    gQuadTreeGeometry.UpdateBufferData();
+    //TODO: the quad tree nodes' locations are based on an already-transformed center point and on particle locations, which don't have a transform, so transition to updating polygon geometry prior to drawing
+    glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));  // identity matrix transform
+    glBindVertexArray(gQuadTreeGeometry._vaoId);
+    glDrawElements(gQuadTreeGeometry._drawStyle, gQuadTreeGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
+
+
+
+    // draw the particle region borders
+    //glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
     glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(gRegionTransformMatrix));
     //glBindVertexArray(gCircleGeometry._vaoId);
     //glDrawElements(gCircleGeometry._drawStyle, gCircleGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);

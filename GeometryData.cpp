@@ -58,8 +58,8 @@ void GeometryData::Init(unsigned int programId)
     glBindBuffer(GL_ARRAY_BUFFER, _arrayBufferId);
 
     // number of bytes = number of items * size of said item
-    unsigned int vertBufferSizeBytes = _verts.size() * sizeof(_verts[0]);
-    glBufferData(GL_ARRAY_BUFFER, vertBufferSizeBytes, _verts.data(), GL_STATIC_DRAW);
+    _vertexBufferSizeBytes = _verts.size() * sizeof(_verts[0]);
+    glBufferData(GL_ARRAY_BUFFER, _vertexBufferSizeBytes, _verts.data(), GL_STATIC_DRAW);
 
     // the order of vertex array / buffer array binding doesn't matter so long as both are bound 
     // before setting vertex array attributes
@@ -88,8 +88,8 @@ void GeometryData::Init(unsigned int programId)
     glGenBuffers(1, &_elementBufferId);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elementBufferId);
 
-    unsigned int elementBufferSizeBytes = _indices.size() * sizeof(_indices[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementBufferSizeBytes, _indices.data(), GL_STATIC_DRAW);
+    _elementBufferSizeBytes = _indices.size() * sizeof(_indices[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _elementBufferSizeBytes, _indices.data(), GL_STATIC_DRAW);
 
     // must unbind array object BEFORE unbinding the buffer or else the array object will think 
     // that its vertex attribute pointers will believe that they should refer to buffer 0
@@ -98,5 +98,43 @@ void GeometryData::Init(unsigned int programId)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     glUseProgram(0);
+}
+
+// TODO: header
+// call after updating _verts or _indices
+// will reset current bindings of GL_ARRAY_BUFFER and GL_ELEMENT_ARRAY_BUFFER to 0
+// do not need a bound program to use
+void GeometryData::UpdateBufferData()    
+{
+    glBindBuffer(GL_ARRAY_BUFFER, _arrayBufferId);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elementBufferId);
+
+    // upload new data, resizing if necessary
+    unsigned int newVertexBufferSizeBytes = _verts.size() * sizeof(_verts[0]);
+    if (newVertexBufferSizeBytes > _vertexBufferSizeBytes)
+    {
+        _vertexBufferSizeBytes = newVertexBufferSizeBytes;
+        glBufferData(GL_ARRAY_BUFFER, _vertexBufferSizeBytes, _verts.data(), GL_STATIC_DRAW);
+    }
+    else
+    {
+        glBufferSubData(GL_ARRAY_BUFFER, 0, _vertexBufferSizeBytes, _verts.data());
+    }
+
+    // repeat for element buffer
+    unsigned int newElementBuffersizeBytes = _indices.size() * sizeof(_indices[0]);
+    if (newElementBuffersizeBytes > _elementBufferSizeBytes)
+    {
+        _elementBufferSizeBytes = newElementBuffersizeBytes;
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, _elementBufferSizeBytes, _indices.data(), GL_STATIC_DRAW);
+    }
+    else
+    {
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, _elementBufferSizeBytes, _indices.data());
+    }
+
+    // cleanup
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 

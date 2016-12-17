@@ -14,6 +14,7 @@ struct GeometryData
     GeometryData();
     ~GeometryData();
     void Init(unsigned int programId);
+    void UpdateBufferData();
 
 
     // save on the large header inclusion of OpenGL and write out these primitive types instead 
@@ -23,7 +24,9 @@ struct GeometryData
     unsigned int _vaoId;
     unsigned int _arrayBufferId;
     unsigned int _elementBufferId;
-    unsigned int _drawStyle;  // GL_TRIANGLES, GL_LINES, etc.
+    unsigned int _drawStyle;    // GL_TRIANGLES, GL_LINES, etc.
+    unsigned int _vertexBufferSizeBytes;
+    unsigned int _elementBufferSizeBytes;
     std::vector<MyVertex> _verts;
     std::vector<unsigned short> _indices;
 };

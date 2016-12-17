@@ -54,19 +54,24 @@ void ParticleQuadTree::InitializeTree(const glm::vec2 &particleRegionCenter, flo
     _particleRegionCenter = particleRegionCenter;
     _particleRegionRadius = particleRegionRadius;
 
-    // starting in the upper left corner of the 2D particle region, where X is minimal and Y is maximal.
-    float x = particleRegionCenter.x - particleRegionRadius;
-    float y = particleRegionCenter.y + particleRegionRadius;
+    // starting in the upper left corner of the 2D particle region, where X is minimal and Y is 
+    // maximal because OpenGL's rectangle origins are the bottom left corner, unlike most 
+    // rectangles in graphical programming, where the top left is min x and min y
+    float xBegin = particleRegionCenter.x - particleRegionRadius;
+    float yBegin = particleRegionCenter.y + particleRegionRadius;
 
     float xIncrementPerNode = 2.0f * particleRegionRadius / _NUM_COLUMNS_IN_TREE_INITIAL;
     float yIncrementPerNode = 2.0f * particleRegionRadius / _NUM_ROWS_IN_TREE_INITIAL;
 
+    float y = yBegin;
     for (int row = 0; row < _NUM_ROWS_IN_TREE_INITIAL; row++)
     {
+        float x = xBegin;
         for (int column = 0; column < _NUM_COLUMNS_IN_TREE_INITIAL; column++)
         {
             int nodeIndex = (row * _NUM_COLUMNS_IN_TREE_INITIAL) + column;
             QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
+            node._inUse = true;
 
             // set the borders of the node
             node._leftEdge = x;
@@ -133,8 +138,10 @@ void ParticleQuadTree::InitializeTree(const glm::vec2 &particleRegionCenter, flo
 
             // setup for next node
             x += xIncrementPerNode;
-            y -= yIncrementPerNode;
         }
+
+        // end of row, increment to the next one
+        y -= yIncrementPerNode;
     }
 
     _numNodesInUse = _NUM_STARTING_NODES;
@@ -541,5 +548,9 @@ void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTim
         }
 
     }
+
+    // update the buffer size for the sake of glBufferData(...) and glBufferSubData(...)
+    putDataHere->_vertexBufferSizeBytes = putDataHere->_verts.size() * sizeof(putDataHere->_verts[0]);
+    putDataHere->_elementBufferSizeBytes = putDataHere->_indices.size() * sizeof(putDataHere->_indices[0]);
 
 }
