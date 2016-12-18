@@ -17,9 +17,7 @@ public:
     bool SubdivideNode(int nodeIndex);  //??private??
     void AddParticlestoTree(std::vector<Particle> *particleCollection);
     
-    // ??combine somehow??
-    int GetMaxTreeSize() const { return _MAX_NODES; }
-    void GenerateGeometry(GeometryData *putDataHere, bool firstTime = false);
+    int GenerateGeometry(GeometryData *putDataHere, bool firstTime = false);
 
 private:
 

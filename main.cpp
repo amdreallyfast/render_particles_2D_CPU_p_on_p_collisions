@@ -263,14 +263,12 @@ void Display()
     // update the quad tree and draw it
     gParticleQuadTree.ResetTree();
     gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
-    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+    unsigned int numQuadTreeNodes = gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
     gQuadTreeGeometry.UpdateBufferData();
     //TODO: the quad tree nodes' locations are based on an already-transformed center point and on particle locations, which don't have a transform, so transition to updating polygon geometry prior to drawing
     glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));  // identity matrix transform
     glBindVertexArray(gQuadTreeGeometry._vaoId);
     glDrawElements(gQuadTreeGeometry._drawStyle, gQuadTreeGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
-
-
 
     // draw the particle region borders
     //glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
@@ -279,6 +277,7 @@ void Display()
     //glDrawElements(gCircleGeometry._drawStyle, gCircleGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
     glBindVertexArray(gPolygonGeometry._vaoId);
     glDrawElements(gPolygonGeometry._drawStyle, gPolygonGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
+
 
     // draw the frame rate once per second in the lower left corner
     // Note: The font textures' orgin is their lower left corner, so the "lower left" in screen 
@@ -297,18 +296,23 @@ void Display()
         elapsedTime -= 1.0f;
     }
     sprintf(str, "%.2lf", frameRate);
-    float xy[2] = { -0.99f, -0.99f };
+    float frameRateXY[2] = { -0.99f, -0.99f };
     float scaleXY[2] = { 1.0f, 1.0f };
 
     // the first time that "get shader program" runs, it will load the atlas
     glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("freetype"));
-    gTextAtlases.GetAtlas(48)->RenderText(str, xy, scaleXY, color);
+    gTextAtlases.GetAtlas(48)->RenderText(str, frameRateXY, scaleXY, color);
 
     // now show number of active particles
     // Note: For some reason, lower case "i" seems to appear too close to the other letters.
     sprintf(str, "active: %d", numActiveParticles);
     float numActiveParticlesXY[2] = { -0.99f, +0.7f };
     gTextAtlases.GetAtlas(48)->RenderText(str, numActiveParticlesXY, scaleXY, color);
+
+    // now draw the number of active quad tree nodes
+    sprintf(str, "nodes: %d", numQuadTreeNodes);
+    float numActiveNodesXY[2] = { -0.99f, +0.5f };
+    gTextAtlases.GetAtlas(48)->RenderText(str, numActiveNodesXY, scaleXY, color);
 
     // clean up bindings
     glUseProgram(0);

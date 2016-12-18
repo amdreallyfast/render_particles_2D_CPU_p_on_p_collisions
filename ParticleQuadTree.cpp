@@ -193,8 +193,8 @@ bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
     if (node._isSubdivided == 0)
     {
         // not subdivided (yet), so add the particle to the provided node
-        int nodeParticleIndex = node._numCurrentParticles;
-        if (nodeParticleIndex == MAX_PARTICLES_PER_QUAD_TREE_NODE)
+        int numParticlesThisNode = node._numCurrentParticles;
+        if (numParticlesThisNode == MAX_PARTICLES_PER_QUAD_TREE_NODE)
         {
             // ran out of space, so split the node and add the particles to its children
             if (!SubdivideNode(nodeIndex))
@@ -215,7 +215,8 @@ bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
         else
         {
             // END RECURSION
-            node._indicesForContainedParticles[nodeParticleIndex] = particleIndex;
+            // Note: It's ok to use this as an index because the "== MAX" check was already done.
+            node._indicesForContainedParticles[numParticlesThisNode] = particleIndex;
             node._numCurrentParticles++;
             p._currentQuadTreeIndex = nodeIndex;
             return true;
@@ -286,8 +287,9 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
     {
         printf("");
     }
-    if (_numNodesInUse >= _MAX_NODES)
+    if (_numNodesInUse > (_MAX_NODES - 4))
     {
+        // not enough to nodes to subdivide again
         //fprintf(stderr, "number nodes in use '%d' maxed out (max = '%d')\n", _numNodesInUse, _MAX_NODES);
         return false;
     }
@@ -296,6 +298,9 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
     int childNodeIndexTopRight = _numNodesInUse++;
     int childNodeIndexBottomRight = _numNodesInUse++;
     int childNodeIndexBottomLeft = _numNodesInUse++;
+
+    //printf("node %d subdividing into %d, %d, %d, %d\n", nodeIndex, childNodeIndexTopLeft, childNodeIndexTopRight, childNodeIndexBottomRight, childNodeIndexBottomLeft);
+
     node._isSubdivided = 1;
     node._childNodeIndexTopLeft = childNodeIndexTopLeft;
     node._childNodeIndexTopRight = childNodeIndexTopRight;
@@ -379,11 +384,13 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
             if (p._position.y > nodeYCenter)
             {
                 // top half of the node
+                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => top left\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexTopLeft;
             }
             else
             {
                 // bottom half of the node
+                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => bottom left\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexBottomLeft;
             }
         }
@@ -393,11 +400,13 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
             if (p._position.y > nodeYCenter)
             {
                 // top half of the node
+                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => top right\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexTopRight;
             }
             else
             {
                 // bottom half of the node
+                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => bottom right\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexBottomRight;
             }
         }
@@ -408,6 +417,8 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
         // still like to clean up after myself in case of debugging
         node._indicesForContainedParticles[particleCount] = 0;
     }
+
+    node._numCurrentParticles = 0;
 
     if (node._childNodeIndexTopLeft == -1)
     {
@@ -427,12 +438,12 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
     // TODO: get rid of this
     allParticles = particleCollection;
 
-    float xIncrementPerNode = 2.0f * _particleRegionRadius / _NUM_COLUMNS_IN_TREE_INITIAL;
-    float yIncrementPerNode = 2.0f * _particleRegionRadius / _NUM_ROWS_IN_TREE_INITIAL;
+    float xIncrementPerColumn = 2.0f * _particleRegionRadius / _NUM_COLUMNS_IN_TREE_INITIAL;
+    float yIncrementPerRow = 2.0f * _particleRegionRadius / _NUM_ROWS_IN_TREE_INITIAL;
 
     // is inverted to save on division cost for every particle on every frame
-    float inverseXIncrementPerNode = 1.0f / xIncrementPerNode;
-    float inverseYIncrementPerNode = 1.0f / yIncrementPerNode;
+    float inverseXIncrementPerColumn = 1.0f / xIncrementPerColumn;
+    float inverseYIncrementPerRow = 1.0f / yIncrementPerRow;
 
     for (size_t particleIndex = 0; particleIndex < particleCollection->size(); particleIndex++)
     {
@@ -452,30 +463,58 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
         }
 
         // I can't think of an intuitive explanation for why the following math works, but it 
-        // does (I worked it out by hand)
-        // Note: If the particle region was centered on 0, then the calculations are as follows:
-        // Let r = particle region radius
-        // Let p = particle
-        // column index = (int)((p.pos.x + r) / X increment per node)
-        // row index = (int)((p.pos.y + r) / Y increment per node)
+        // does (I worked it out by hand, got it wrong, experimented, and got it right)
+        // Note: Row bounds are on the Y axis, column bounds are on the X axis.  I always get 
+        // them mixed up because a row is horizontal and a column is vertical.
+        // Also Note:
+        //  col index   = (int)((p.pos.x - quadTreeLeftEdge) / xIncrementPerColumn)
+        //  row index   = (int)((quadTreeTopEdge - p.pos.y) / yIncrementPerRow);
         //
-        // But if the particle region is not centered at (0,0), the calculation gets more complicated:
-        // column index = (int)((p.pos.x - (regionCenter.X - r)) / X increment per node)
-        // row index = (int)(((regionCenter.y + r) - p.pos.y) / Y increment per node)
-        int row = (int)((p._position.x - (_particleRegionCenter.x - _particleRegionRadius)) * inverseXIncrementPerNode);
-        int column = (int)(((_particleRegionCenter.y + _particleRegionRadius) - p._position.y) * inverseYIncrementPerNode);
+        //  Let c - particle region center
+        //  Let r = particle region radius
+        //  Let p = particle
+        //  Then:
+        //  col index = (int)((p.pos.x - (c.x - r)) / xIncrementPerColumn);
+        //  row index = (int)(((c.y + r) - p.pos.y) / yIncrementPerRow);
+        //
+        // Also Also Note: The integer rounding should NOT be to the nearest integer.  Array 
+        // indices start at 0, so any value between 0 and 1 is considered to be in the 0th index.
 
-        if (row < 0 || row > _NUM_ROWS_IN_TREE_INITIAL)
-        {
-            fprintf(stderr, "Error: calculated particle row '%d' out of range of initial number of rows [0 - %d]\n", row, _NUM_ROWS_IN_TREE_INITIAL);
-        }
-        if (column < 0 || column > _NUM_COLUMNS_IN_TREE_INITIAL)
-        {
-            fprintf(stderr, "Error: calculated particle column '%d' out of range of initial number of columns [0 - %d]\n", column, _NUM_COLUMNS_IN_TREE_INITIAL);
-        }
+        // column 
+        float leftEdge = _particleRegionCenter.x - _particleRegionRadius;
+        float xDiff = p._position.x - leftEdge;
+        float colFloat = xDiff * inverseXIncrementPerColumn;
+        int colInt = int(colFloat);
+
+        float topEdge = _particleRegionCenter.y + _particleRegionRadius;
+        float yDiff = topEdge - p._position.y;
+        float rowFloat = yDiff * inverseYIncrementPerRow;
+        int rowInt = int(rowFloat);
+
+
+        //int row = (int)((p._position.x - (_particleRegionCenter.x - _particleRegionRadius)) * inverseXIncrementPerNode);
+        //int column = (int)(((_particleRegionCenter.y + _particleRegionRadius) - p._position.y) * inverseYIncrementPerNode);
+
+        //if (row < 0 || row > _NUM_ROWS_IN_TREE_INITIAL)
+        //{
+        //    fprintf(stderr, "Error: calculated particle row '%d' out of range of initial number of rows [0 - %d]\n", row, _NUM_ROWS_IN_TREE_INITIAL);
+        //}
+        //if (column < 0 || column > _NUM_COLUMNS_IN_TREE_INITIAL)
+        //{
+        //    fprintf(stderr, "Error: calculated particle column '%d' out of range of initial number of columns [0 - %d]\n", column, _NUM_COLUMNS_IN_TREE_INITIAL);
+        //}
 
         // follow the same index calulation as in InitializeTree(...)
-        int nodeIndex = (row * _NUM_COLUMNS_IN_TREE_INITIAL) + column;
+        int nodeIndex = (rowInt * _NUM_COLUMNS_IN_TREE_INITIAL) + colInt;
+
+        QuadTreeNode &n = _allQuadTreeNodes[nodeIndex];
+
+        //printf("for particle p (# %d) at (%1.4f, %1.4f): \n", particleIndex, p._position.x, p._position.y);
+        //printf(" - Left edge = %02.4f, xDiff = %1.4f, /xPerCol %1.4f = rowFloat = %1.4f, rowInt = %d\n", leftEdge, xDiff, xIncrementPerColumn, rowFloat, rowInt);
+        //printf(" - Top edge  = %02.4f, yDiff = %1.4f, /yPerRow %1.4f = colFloat = %1.4f, colInt = %d\n", topEdge, yDiff, yIncrementPerRow, colFloat, colInt);
+        //printf(" - resultant node %d (row %d, col %d) with left %1.4f, right %1.4f, top %1.4f, bottom %1.4f\n",
+        //    nodeIndex, rowInt, colInt, n._leftEdge, n._rightEdge, n._topEdge, n._bottomEdge);
+        //printf("\n");
 
         if (particleIndex == 53)
         {
@@ -489,7 +528,7 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
 
 // TODO: header
 // Note: There are many duplicate nodes and lines, but this is just a demo.  I won't concern myself with trying to optimize this rendering aspect of the program.
-void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime)
+int ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime)
 {
     // the data changes potentially every frame, so have to clear out the existing data
     putDataHere->_verts.clear();
@@ -553,4 +592,6 @@ void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTim
     putDataHere->_vertexBufferSizeBytes = putDataHere->_verts.size() * sizeof(putDataHere->_verts[0]);
     putDataHere->_elementBufferSizeBytes = putDataHere->_indices.size() * sizeof(putDataHere->_indices[0]);
 
+    // useful for printing current node count to the screen
+    return _numNodesInUse;
 }
