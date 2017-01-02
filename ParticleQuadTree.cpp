@@ -11,16 +11,6 @@ static std::vector<Particle> *allParticles = 0;
 
 
 
-// TODO: add public method: void "get tree lines"(vector<MyVertex> *putDataHere) that spits a collection of lines (2-vertex pairs) that describe the quad trees; this is for drawing, and also also gives the number of nodes in use)
-// TODO: particles don't need to know which node they are a part of, so the global "all particles" pointer is unnecessary; 
-//  - get rid of it
-//  - have "add particles to tree" take a const vector reference, not a non-const pointer
-// TODO: add public method: int "which node is this?"(int x, int y)
-// TODO: add public method: get const quad tree reference (the particle updater will perform the collision detection)
-// TODO: cleanup
-// TODO: function header blocks
-// TODO: remove particle regions, replace with a simple radius
-// TODO: replace _childTopLeft, _childTopRight, etc. with an array of child pointers, then pick betweent hem with an enum
 // TODO: check performance
 // TODO: after performance check
 //  - remove all "neighbor" indices
@@ -37,7 +27,14 @@ static std::vector<Particle> *allParticles = 0;
 
 
 
-// TODO: header
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Gives members their default values.
+Parameters: None
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
 ParticleQuadTree::ParticleQuadTree() :
     _numNodesInUse(0),
     _particleRegionRadius(0.0f)
@@ -45,10 +42,24 @@ ParticleQuadTree::ParticleQuadTree() :
     // other structures already have initializers to 0
 }
 
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Sets up the initial tree subdivision with _NUM_ROWS_IN_TREE_INITIAL by 
+    _NUM_COLUMNS_IN_TREE_INITIAL nodes.  Boundaries are determined by the particle region center 
+    and the particle region radius.  The ParticleUpdater should constrain particles to this 
+    region, and the quad tree will subdivide within this region.
 
-
-// TODO: header
-// Note: I considered and heavily entertained the idea of starting every frame with one node and subdividing as necessary, but I abandoned that idea because of the additional load necessary to determine neighboring nodes during the subdivision.  By starting with a pre-subdivided array, I have neighboring nodes already in place, so when subdividing, the child nodes don't need to calculate anything new, but rather simply pull from their parents' information.
+    Note: I considered and heavily entertained the idea of starting every frame with one node 
+    and subdividing as necessary, but I abandoned that idea because there will be many particles 
+    in all but the initial frames.  It took some extra calculations up front, but the initial 
+    subdivision should cut down on the subdivisions that are needed on every frame.
+Parameters:
+    particleRegionCenter    In world space
+    particleRegionRadius    In world space
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
 void ParticleQuadTree::InitializeTree(const glm::vec2 &particleRegionCenter, float particleRegionRadius)
 {
     _particleRegionCenter = particleRegionCenter;
@@ -80,7 +91,10 @@ void ParticleQuadTree::InitializeTree(const glm::vec2 &particleRegionCenter, flo
             node._bottomEdge = y - yIncrementPerNode;
 
             // assign neighbors
-            // Note: Nodes on the edge of the initial tree have three null neighbors (ex: a top-row node has null top left, top, and top right neighbors).  There may be other ways to calculate these, but I chose the following because it is spelled out verbosely.
+            // Note: Nodes on the edge of the initial tree have three null neighbors.  There may 
+            // be other ways to calculate these, but I chose the following because it is spelled 
+            // out verbosely.
+            // Ex: a top - row node has null top left, top, and top right neighbors.
 
             // left edge does not have a "left" neighbor
             if (column > 0)
@@ -149,14 +163,27 @@ void ParticleQuadTree::InitializeTree(const glm::vec2 &particleRegionCenter, flo
 
 }
 
-// TODO: header
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Resets the tree to only use _NUM_ROWS_IN_TREE_INITIAL by _NUM_COLUMNS_IN_TREE_INITIAL nodes.
+    After this, any calls to SubdivideNode(...) will run over previously subdivided nodes.
+
+    Ex: Start with 64 nodes, each with calculated bounds.  There are 256 nodes total.  Calling
+    Reset() will set the number of nodes in use back to 64.  The next SubdivideNode(...) will 
+    then modify nodes 65, 66, 67, and 68.  Their previous values will be run over.
+Parameters: None
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
 void ParticleQuadTree::ResetTree()
 {
     for (int nodeIndex = 0; nodeIndex < _MAX_NODES; nodeIndex++)
     {
         QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
         node._numCurrentParticles = 0;
-        //node._startingParticleIndex = 0;
+        
+        // not subdivided
         node._isSubdivided = 0;
         node._childNodeIndexTopLeft = -1;
         node._childNodeIndexTopRight = -1;
@@ -173,22 +200,199 @@ void ParticleQuadTree::ResetTree()
     _numNodesInUse = _NUM_STARTING_NODES;
 }
 
-// TODO: header
-// Note: This function does not sanitize the input.  The purpose of this function is to create a connection between a particle and a node.  Be nice to it and check particle bounds first.
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Governs the addition of particles to the quad tree.  It calculates which of the default tree 
+    nodes the particle is in, and then adds the particle to it.  AddParticleToNode(...) will 
+    handle subdivision and addition of particles to child nodes.
+Parameters: 
+    particleCollection  A container for all particles in use by this program.
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollection)
+{
+    // TODO: get rid of this
+    allParticles = particleCollection;
+
+    float xIncrementPerColumn = 2.0f * _particleRegionRadius / _NUM_COLUMNS_IN_TREE_INITIAL;
+    float yIncrementPerRow = 2.0f * _particleRegionRadius / _NUM_ROWS_IN_TREE_INITIAL;
+
+    // is inverted to save on division cost for every particle on every frame
+    float inverseXIncrementPerColumn = 1.0f / xIncrementPerColumn;
+    float inverseYIncrementPerRow = 1.0f / yIncrementPerRow;
+
+    for (size_t particleIndex = 0; particleIndex < particleCollection->size(); particleIndex++)
+    {
+        Particle &p = (*particleCollection)[particleIndex];
+        if (p._isActive == 0)
+        {
+            // only add active particles
+            continue;
+        }
+
+        // I can't think of an intuitive explanation for why the following math works, but it 
+        // does (I worked it out by hand, got it wrong, experimented, and got it right)
+        // Note: Row bounds are on the Y axis, column bounds are on the X axis.  I always get 
+        // them mixed up because a row is horizontal and a column is vertical.
+        // Also Note:
+        //  col index   = (int)((p.pos.x - quadTreeLeftEdge) / xIncrementPerColumn)
+        //  row index   = (int)((quadTreeTopEdge - p.pos.y) / yIncrementPerRow);
+        //
+        //  Let c = particle region center
+        //  Let r = particle region radius
+        //  Let p = particle
+        //  Then:
+        //  col index = (int)((p.pos.x - (c.x - r)) / xIncrementPerColumn);
+        //  row index = (int)(((c.y + r) - p.pos.y) / yIncrementPerRow);
+        //
+        // Also Also Note: The integer rounding should NOT be to the nearest integer.  Array 
+        // indices start at 0, so any value between 0 and 1 is considered to be in the 0th index.
+
+        // column 
+        float leftEdge = _particleRegionCenter.x - _particleRegionRadius;
+        float xDiff = p._position.x - leftEdge;
+        float colFloat = xDiff * inverseXIncrementPerColumn;
+        int colInt = int(colFloat);
+
+        float topEdge = _particleRegionCenter.y + _particleRegionRadius;
+        float yDiff = topEdge - p._position.y;
+        float rowFloat = yDiff * inverseYIncrementPerRow;
+        int rowInt = int(rowFloat);
+
+        // same index calulation as in InitializeTree(...)
+        int nodeIndex = (rowInt * _NUM_COLUMNS_IN_TREE_INITIAL) + colInt;
+        AddParticleToNode(particleIndex, nodeIndex);
+    }
+}
+
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Generates lines for the bounds of all nodes in use.  Used to draw a visualization of the 
+    quad tree.
+
+    Note: There are many duplicate nodes and lines, but this is just a demo.  I won't concern 
+    myself with trying to optimize this aspect of the program.
+Parameters: 
+    putDataHere     Self-explanatory
+    firstTime       If true, initializes the geometry data.  Dummy data is given.
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime)
+{
+    // the data changes potentially every frame, so have to clear out the existing data
+    putDataHere->_verts.clear();
+    putDataHere->_indices.clear();
+
+    // give it a load of dummy data the first time that this is called
+    // Note: The first time that this is called is during setup so that the GeometryData object 
+    // can allocate a correctly sized vertex buffer on the GPU.  The vertex buffer needs the 
+    // buffer to be as large as it could possibly be at this time.  I don't want to have to deal 
+    // with resizing the buffer at runtime when I could easily give it a maximum size at the 
+    // start.
+    if (firstTime)
+    {
+        putDataHere->_drawStyle = GL_LINES;
+
+        // 4 corners per box
+        putDataHere->_verts.resize(_MAX_NODES * 4);
+
+        // 4 lines per box, 2 vertices per line
+        putDataHere->_indices.resize(_MAX_NODES * 4 * 2);
+    }
+    else
+    {
+        unsigned short vertexIndex = 0;
+        for (size_t nodeCounter = 0; nodeCounter < _numNodesInUse; nodeCounter++)
+        {
+            QuadTreeNode &node = _allQuadTreeNodes[nodeCounter];
+
+            // 4 corners per box
+            MyVertex topLeft;
+            unsigned short topLeftIndex = vertexIndex++;
+            topLeft._position = glm::vec2(node._leftEdge, node._topEdge);
+            putDataHere->_verts.push_back(topLeft);
+
+            MyVertex topRight;
+            unsigned short topRightIndex = vertexIndex++;
+            topRight._position = glm::vec2(node._rightEdge, node._topEdge);
+            putDataHere->_verts.push_back(topRight);
+
+            MyVertex bottomRight;
+            unsigned short bottomRightIndex = vertexIndex++;
+            bottomRight._position = glm::vec2(node._rightEdge, node._bottomEdge);
+            putDataHere->_verts.push_back(bottomRight);
+
+            MyVertex bottomLeft;
+            unsigned short bottomeLeftIndex = vertexIndex++;
+            bottomLeft._position = glm::vec2(node._leftEdge, node._bottomEdge);
+            putDataHere->_verts.push_back(bottomLeft);
+
+            // 4 lines per box, 2 vertices per line
+            // Note: These are lines, so there is no concern about clockwise or counterclockwise
+            putDataHere->_indices.push_back(topLeftIndex);
+            putDataHere->_indices.push_back(topRightIndex);
+            putDataHere->_indices.push_back(topRightIndex);
+            putDataHere->_indices.push_back(bottomRightIndex);
+            putDataHere->_indices.push_back(bottomRightIndex);
+            putDataHere->_indices.push_back(bottomeLeftIndex);
+            putDataHere->_indices.push_back(bottomeLeftIndex);
+            putDataHere->_indices.push_back(topLeftIndex);
+        }
+
+    }
+
+    // used for glBufferData(...) and glBufferSubData(...)
+    putDataHere->_vertexBufferSizeBytes = putDataHere->_verts.size() * sizeof(putDataHere->_verts[0]);
+    putDataHere->_elementBufferSizeBytes = putDataHere->_indices.size() * sizeof(putDataHere->_indices[0]);
+}
+
+/*-----------------------------------------------------------------------------------------------
+Description:
+    A simple getter.  Used when printing the number of current quad tree nodes to the screen.
+
+    Note: _numNodesInUse is modified in InitializeTree(...), ResetTree(), and SubdivideNode(...).
+Parameters: Node
+Returns:    
+    The number of nodes that are currently in use by the tree (usually less than _MAX_NODES).
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+int ParticleQuadTree::NumNodesInUse() const
+{
+    return _numNodesInUse;
+}
+
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Adds the specified particle to the specified node.  If the new particle will push the node 
+    over its particle containment limit, then it subdivides and populates its new children with 
+    its own particles.
+
+    Note: I could have passed the arguments by reference, but I'm keeping them as indices as a 
+    reminder for myself of how to pass values in the GPU version.  Compute shaders don't have 
+    pointers or references, so their must used indices.
+
+    Also Note: This function does not sanitize the input.  The purpose of this function is to 
+    create a connection between a particle and a node.  Be nice to it and check particle bounds 
+    first.
+    TODO: particles should not contain a link to its node; particle collisions will be calculated for each particle within a node, not for each particle overall
+
+Parameters: 
+    particleIndex   The particle that needs to be added.
+    nodeIndex       The quad tree node to add the particle to.
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
 bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
 {
     Particle &p = (*allParticles)[particleIndex];
     QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
     int destinationNodeIndex = -1;
-
-    if (nodeIndex == -1)
-    {
-        printf("");
-    }
-    if (nodeIndex == 252)
-    {
-        printf("");
-    }
 
     if (node._isSubdivided == 0)
     {
@@ -204,13 +408,8 @@ bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
             }
 
             //node._numCurrentParticles = 0;
+            // add the particle to this same node again, which will use the "is subdivided" logic
             destinationNodeIndex = nodeIndex;
-
-            if (destinationNodeIndex == -1)
-            {
-                printf("");
-            }
-
         }
         else
         {
@@ -241,12 +440,6 @@ bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
                 // bottom half 
                 destinationNodeIndex = node._childNodeIndexBottomLeft;
             }
-
-            if (destinationNodeIndex == -1)
-            {
-                printf("");
-            }
-
         }
         else
         {
@@ -261,36 +454,31 @@ bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
                 // bottom half 
                 destinationNodeIndex = node._childNodeIndexBottomRight;
             }
-
-            if (destinationNodeIndex == -1)
-            {
-                printf("");
-            }
-
         }
     }
 
-    if (destinationNodeIndex == -1)
-    {
-        printf("");
-    }
     return AddParticleToNode(particleIndex, destinationNodeIndex);
 }
 
-
-// TODO: header
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Grabs four unused nodes from the "all nodes" array, sets their bounds as four quadrants of 
+    the parent node that needs to be subdivided, populates them with that node's particles, and 
+    empties the parent node.
+    // TODO: get rid of "neighbors" 
+Parameters: 
+    nodeIndex       The quad tree node to split
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
 bool ParticleQuadTree::SubdivideNode(int nodeIndex)
 {
     QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
 
-    if (nodeIndex == 252)
-    {
-        printf("");
-    }
     if (_numNodesInUse > (_MAX_NODES - 4))
     {
         // not enough to nodes to subdivide again
-        //fprintf(stderr, "number nodes in use '%d' maxed out (max = '%d')\n", _numNodesInUse, _MAX_NODES);
         return false;
     }
 
@@ -298,8 +486,6 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
     int childNodeIndexTopRight = _numNodesInUse++;
     int childNodeIndexBottomRight = _numNodesInUse++;
     int childNodeIndexBottomLeft = _numNodesInUse++;
-
-    //printf("node %d subdividing into %d, %d, %d, %d\n", nodeIndex, childNodeIndexTopLeft, childNodeIndexTopRight, childNodeIndexBottomRight, childNodeIndexBottomLeft);
 
     node._isSubdivided = 1;
     node._childNodeIndexTopLeft = childNodeIndexTopLeft;
@@ -384,13 +570,11 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
             if (p._position.y > nodeYCenter)
             {
                 // top half of the node
-                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => top left\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexTopLeft;
             }
             else
             {
                 // bottom half of the node
-                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => bottom left\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexBottomLeft;
             }
         }
@@ -400,13 +584,11 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
             if (p._position.y > nodeYCenter)
             {
                 // top half of the node
-                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => top right\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexTopRight;
             }
             else
             {
                 // bottom half of the node
-                //printf("p is at (%01.4f, %01.4f) compared to node center (%01.4f, %01.4f), => bottom right\n", p._position.x, p._position.y, nodeXCenter, nodeYCenter);
                 childNodeIndex = node._childNodeIndexBottomRight;
             }
         }
@@ -429,176 +611,5 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
 
     // all went well
     return true;
-}
-
-
-// TODO: header
-void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollection)
-{
-    // TODO: get rid of this
-    allParticles = particleCollection;
-
-    float xIncrementPerColumn = 2.0f * _particleRegionRadius / _NUM_COLUMNS_IN_TREE_INITIAL;
-    float yIncrementPerRow = 2.0f * _particleRegionRadius / _NUM_ROWS_IN_TREE_INITIAL;
-
-    // is inverted to save on division cost for every particle on every frame
-    float inverseXIncrementPerColumn = 1.0f / xIncrementPerColumn;
-    float inverseYIncrementPerRow = 1.0f / yIncrementPerRow;
-
-    for (size_t particleIndex = 0; particleIndex < particleCollection->size(); particleIndex++)
-    {
-        if (particleIndex == 61)
-        {
-            printf("");
-        }
-        if (particleCollection->size() != 15000)
-        {
-            printf("");
-        }
-        Particle &p = (*particleCollection)[particleIndex];
-        if (p._isActive == 0)
-        {
-            // only add active particles
-            continue;
-        }
-
-        // I can't think of an intuitive explanation for why the following math works, but it 
-        // does (I worked it out by hand, got it wrong, experimented, and got it right)
-        // Note: Row bounds are on the Y axis, column bounds are on the X axis.  I always get 
-        // them mixed up because a row is horizontal and a column is vertical.
-        // Also Note:
-        //  col index   = (int)((p.pos.x - quadTreeLeftEdge) / xIncrementPerColumn)
-        //  row index   = (int)((quadTreeTopEdge - p.pos.y) / yIncrementPerRow);
-        //
-        //  Let c - particle region center
-        //  Let r = particle region radius
-        //  Let p = particle
-        //  Then:
-        //  col index = (int)((p.pos.x - (c.x - r)) / xIncrementPerColumn);
-        //  row index = (int)(((c.y + r) - p.pos.y) / yIncrementPerRow);
-        //
-        // Also Also Note: The integer rounding should NOT be to the nearest integer.  Array 
-        // indices start at 0, so any value between 0 and 1 is considered to be in the 0th index.
-
-        // column 
-        float leftEdge = _particleRegionCenter.x - _particleRegionRadius;
-        float xDiff = p._position.x - leftEdge;
-        float colFloat = xDiff * inverseXIncrementPerColumn;
-        int colInt = int(colFloat);
-
-        float topEdge = _particleRegionCenter.y + _particleRegionRadius;
-        float yDiff = topEdge - p._position.y;
-        float rowFloat = yDiff * inverseYIncrementPerRow;
-        int rowInt = int(rowFloat);
-
-
-        //int row = (int)((p._position.x - (_particleRegionCenter.x - _particleRegionRadius)) * inverseXIncrementPerNode);
-        //int column = (int)(((_particleRegionCenter.y + _particleRegionRadius) - p._position.y) * inverseYIncrementPerNode);
-
-        //if (row < 0 || row > _NUM_ROWS_IN_TREE_INITIAL)
-        //{
-        //    fprintf(stderr, "Error: calculated particle row '%d' out of range of initial number of rows [0 - %d]\n", row, _NUM_ROWS_IN_TREE_INITIAL);
-        //}
-        //if (column < 0 || column > _NUM_COLUMNS_IN_TREE_INITIAL)
-        //{
-        //    fprintf(stderr, "Error: calculated particle column '%d' out of range of initial number of columns [0 - %d]\n", column, _NUM_COLUMNS_IN_TREE_INITIAL);
-        //}
-
-        // follow the same index calulation as in InitializeTree(...)
-        int nodeIndex = (rowInt * _NUM_COLUMNS_IN_TREE_INITIAL) + colInt;
-
-        QuadTreeNode &n = _allQuadTreeNodes[nodeIndex];
-
-        //printf("for particle p (# %d) at (%1.4f, %1.4f): \n", particleIndex, p._position.x, p._position.y);
-        //printf(" - Left edge = %02.4f, xDiff = %1.4f, /xPerCol %1.4f = rowFloat = %1.4f, rowInt = %d\n", leftEdge, xDiff, xIncrementPerColumn, rowFloat, rowInt);
-        //printf(" - Top edge  = %02.4f, yDiff = %1.4f, /yPerRow %1.4f = colFloat = %1.4f, colInt = %d\n", topEdge, yDiff, yIncrementPerRow, colFloat, colInt);
-        //printf(" - resultant node %d (row %d, col %d) with left %1.4f, right %1.4f, top %1.4f, bottom %1.4f\n",
-        //    nodeIndex, rowInt, colInt, n._leftEdge, n._rightEdge, n._topEdge, n._bottomEdge);
-        //printf("\n");
-
-        if (particleIndex == 53)
-        {
-            printf("");
-        }
-        AddParticleToNode(particleIndex, nodeIndex);
-    }
-
-    printf("");
-}
-
-// TODO: header
-// Note: There are many duplicate nodes and lines, but this is just a demo.  I won't concern myself with trying to optimize this rendering aspect of the program.
-void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime)
-{
-    // the data changes potentially every frame, so have to clear out the existing data
-    putDataHere->_verts.clear();
-    putDataHere->_indices.clear();
-
-    // give it a load of dummy data the first time that this is called
-    // Note: The first time that this is called is during setup so that the GeometryData object can allocate a correctly sized vertex buffer on the GPU.  The vertex buffer needs the buffer to be as large as it could possibly be at this time.  I don't want to have to deal with resizing the buffer at runtime when I could easily give it a maximum size at the start.
-    if (firstTime)
-    {
-        putDataHere->_drawStyle = GL_LINES;
-
-        // 4 corners per box
-        putDataHere->_verts.resize(_MAX_NODES * 4);
-
-        // 4 lines per box, 2 vertices per line
-        putDataHere->_indices.resize(_MAX_NODES * 4 * 2);
-    }
-    else
-    {
-        unsigned short vertexIndex = 0;
-        for (size_t nodeCounter = 0; nodeCounter < _numNodesInUse; nodeCounter++)
-        {
-            QuadTreeNode &node = _allQuadTreeNodes[nodeCounter];
-
-            // 4 corners per box
-            MyVertex topLeft;
-            unsigned short topLeftIndex = vertexIndex++;
-            topLeft._position = glm::vec2(node._leftEdge, node._topEdge);
-            putDataHere->_verts.push_back(topLeft);
-
-            MyVertex topRight;
-            unsigned short topRightIndex = vertexIndex++;
-            topRight._position = glm::vec2(node._rightEdge, node._topEdge);
-            putDataHere->_verts.push_back(topRight);
-
-            MyVertex bottomRight;
-            unsigned short bottomRightIndex = vertexIndex++;
-            bottomRight._position = glm::vec2(node._rightEdge, node._bottomEdge);
-            putDataHere->_verts.push_back(bottomRight);
-
-            MyVertex bottomLeft;
-            unsigned short bottomeLeftIndex = vertexIndex++;
-            bottomLeft._position = glm::vec2(node._leftEdge, node._bottomEdge);
-            putDataHere->_verts.push_back(bottomLeft);
-
-            // 4 lines per box, 2 vertices per line
-            // Note: These are lines, so there is no concern about clockwise or counterclockwise
-            putDataHere->_indices.push_back(topLeftIndex);
-            putDataHere->_indices.push_back(topRightIndex);
-            putDataHere->_indices.push_back(topRightIndex);
-            putDataHere->_indices.push_back(bottomRightIndex);
-            putDataHere->_indices.push_back(bottomRightIndex);
-            putDataHere->_indices.push_back(bottomeLeftIndex);
-            putDataHere->_indices.push_back(bottomeLeftIndex);
-            putDataHere->_indices.push_back(topLeftIndex);
-        }
-
-    }
-
-    // update the buffer size for the sake of glBufferData(...) and glBufferSubData(...)
-    putDataHere->_vertexBufferSizeBytes = putDataHere->_verts.size() * sizeof(putDataHere->_verts[0]);
-    putDataHere->_elementBufferSizeBytes = putDataHere->_indices.size() * sizeof(putDataHere->_indices[0]);
-}
-
-// TODO: header
-// useful for printing current node count to the screen
-// _numNodesInUse is modified in InitializeTree(...), ResetTree(), and SubdivideNode(...)
-
-int ParticleQuadTree::NumNodesInUse() const
-{
-    return _numNodesInUse;
 }
 

@@ -21,6 +21,8 @@ struct Particle
 
     glm::vec2 _position;
     glm::vec2 _velocity;
+
+    // TODO: get rid of this
     int _currentQuadTreeIndex;
 
     // Note: Booleans cannot be uploaded to the shader 

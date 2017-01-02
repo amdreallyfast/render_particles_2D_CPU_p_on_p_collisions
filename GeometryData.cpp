@@ -100,11 +100,20 @@ void GeometryData::Init(unsigned int programId)
     glUseProgram(0);
 }
 
-// TODO: header
-// call after updating _verts or _indices
-// will reset current bindings of GL_ARRAY_BUFFER and GL_ELEMENT_ARRAY_BUFFER to 0
-// do not need a bound program to use
-void GeometryData::UpdateBufferData()    
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Uploads buffer data on the GPU with current vertex data.  Useful if the vertex data varies 
+    in size on every frame, such as when rendering the quad tree.
+
+    Node: Call after updating _verts or _indices
+    Also Note: Will reset current bindings of GL_ARRAY_BUFFER and GL_ELEMENT_ARRAY_BUFFER to 0.
+    Also Also Note: Does not need a bound program to use.
+Parameters: None
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+void GeometryData::UpdateBufferData()
 {
     glBindBuffer(GL_ARRAY_BUFFER, _arrayBufferId);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elementBufferId);

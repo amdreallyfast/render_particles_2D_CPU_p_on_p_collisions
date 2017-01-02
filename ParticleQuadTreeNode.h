@@ -4,6 +4,14 @@
 
 const unsigned int MAX_PARTICLES_PER_QUAD_TREE_NODE = 50;
 
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Contains all info necessary for a single node of the quad tree.  It is a dumb container 
+    meant for use only by ParticleQuadTree.
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+
+// TODO: get rid of neighbors
 struct QuadTreeNode
 {
     QuadTreeNode() :
