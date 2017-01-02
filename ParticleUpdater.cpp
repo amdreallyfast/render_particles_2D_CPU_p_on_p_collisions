@@ -10,9 +10,11 @@ Returns:    None
 Exception:  Safe
 Creator:    John Cox (7-4-2016)
 -----------------------------------------------------------------------------------------------*/
-ParticleUpdater::ParticleUpdater() :
-    _pRegion(0)
+ParticleUpdater::ParticleUpdater()
 {
+    // glm structures have their own initializers
+    _particleRegionRadiusSqr = 0.0f;
+
     for (size_t emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++)
     {
         _pEmitters[emitterIndex] = 0;
@@ -31,9 +33,12 @@ Returns:    None
 Exception:  Safe
 Creator:    John Cox (7-4-2016)
 -----------------------------------------------------------------------------------------------*/
-void ParticleUpdater::SetRegion(const IParticleRegion *pRegion)
+//void ParticleUpdater::SetRegion(const IParticleRegion *pRegion)
+void ParticleUpdater::SetRegion(const glm::vec2 &particleRegionCenter, const float particleRegionRadius)
 {
-    _pRegion = pRegion;
+    //_pRegion = pRegion;
+    _particleRegionCenter = particleRegionCenter;
+    _particleRegionRadiusSqr = particleRegionRadius * particleRegionRadius;
 }
 
 /*-----------------------------------------------------------------------------------------------
@@ -81,7 +86,9 @@ Creator:    John Cox (7-4-2016)
 void ParticleUpdater::Update(std::vector<Particle> &particleCollection, 
     const unsigned int startIndex, const unsigned int numToUpdate, const float deltaTimeSec)
 {
-    if (_emitterCount == 0 || _pRegion == 0)
+    //if (_emitterCount == 0 || _pRegion == 0)
+    // if the radius is 0, then SetRegion(...) has not been called
+    if (_emitterCount == 0 || _particleRegionRadiusSqr == 0.0f)
     {
         return;
     }
@@ -117,7 +124,8 @@ void ParticleUpdater::Update(std::vector<Particle> &particleCollection,
     for (size_t particleIndex = startIndex; particleIndex < endIndex; particleIndex++)
     {
         Particle &pCopy = particleCollection[particleIndex];
-        if (_pRegion->OutOfBounds(pCopy))
+        //if (_pRegion->OutOfBounds(pCopy))
+        if (ParticleOutOfBounds(pCopy))
         {
             pCopy._isActive = false;
         }
@@ -203,3 +211,27 @@ void ParticleUpdater::ResetAllParticles(std::vector<Particle> &particleCollectio
     }
 }
 
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Cleans up Update(...).  It is a simply calculation because the particle region is a circle.
+Parameters:
+    p   The particle to examine.
+Returns:    
+    True if the particle is outside the region of particle validity, otherwise false.
+Exception:  Safe
+Creator:    John Cox (1-2-2017)
+-----------------------------------------------------------------------------------------------*/
+bool ParticleUpdater::ParticleOutOfBounds(const Particle &p) const
+{
+    glm::vec2 regionCenterToParticle = p._position - _particleRegionCenter;
+
+    // partial pythagorean's theorem
+    float distToParticleSqr = (regionCenterToParticle.x * regionCenterToParticle.x) +
+        (regionCenterToParticle.y * regionCenterToParticle.y);
+    if (distToParticleSqr > _particleRegionRadiusSqr)
+    {
+        return true;
+    }
+
+    return false;
+}
