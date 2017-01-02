@@ -18,7 +18,9 @@ struct ParticleStorage
 {
 public:
     ParticleStorage();
+    ~ParticleStorage();
     void Init(unsigned int programId, unsigned int numParticles);
+    void UpdateBufferData();
 
     // save on the large header inclusion of OpenGL and write out these primitive types instead 
     // of using the OpenGL typedefs

@@ -20,6 +20,21 @@ ParticleStorage::ParticleStorage() :
 
 /*-----------------------------------------------------------------------------------------------
 Description:
+    Ensures that class resources are released.  This should have been made months ago, but it
+    wasn't.  
+Parameters: None
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (1-2-2017)
+-----------------------------------------------------------------------------------------------*/
+ParticleStorage::~ParticleStorage()
+{
+    glDeleteBuffers(1, &_arrayBufferId);
+    glDeleteVertexArrays(1, &_vaoId);
+}
+
+/*-----------------------------------------------------------------------------------------------
+Description:
     Generates a vertex buffer and vertex array object (contains vertex array attributes) for the 
     provided particle data.
 Parameters:
@@ -90,4 +105,27 @@ void ParticleStorage::Init(unsigned int programId, unsigned int numParticles)
     glBindVertexArray(0);   // unbind this BEFORE the array
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glUseProgram(0);    // always last
+}
+
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Like the comparable method of GeometryData::UpdateBufferData(), this uploads buffer data on 
+    the GPU with current particle.
+
+    Note: The maximum buffer size is determined in Init(...), so unlike the GeometryData 
+    version, there is no need to check to see if a bigger buffer needs to be allocated.
+Parameters: None
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+void ParticleStorage::UpdateBufferData()
+{
+    glBindBuffer(GL_ARRAY_BUFFER, _arrayBufferId);
+
+    glBindBuffer(GL_ARRAY_BUFFER, _arrayBufferId);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, _sizeBytes, _allParticles.data());
+
+    // cleanup
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }

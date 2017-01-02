@@ -70,7 +70,6 @@ GLint gUnifMatrixTransformLoc;
 // in a bigger program, geometry data would be stored in some kind of "scene" or in a renderer
 // or behind door number 3 so that collision boxes could get at the vertex data
 GeometryData gCircleGeometry;
-GeometryData gPolygonGeometry;
 GeometryData gQuadTreeGeometry;
 
 // in a bigger program, this would somehow be encapsulated and associated with both the circle
@@ -190,7 +189,9 @@ void Init()
     gpParticleEmitterBar = new ParticleEmitterBar(barP1, barP2, emitDirection, minVel, maxVel);
     gpParticleEmitterBar->SetTransform(gRegionTransformMatrix);
 
-    // stick the particle region and emitters into a single "updater" object
+    // starting up the particle storage
+    // Note: The shader is needed for the particle storage because the Init(...) method sets up 
+    // the VAO.
     gParticleStorage.Init(particleProgramId, MAX_PARTICLE_COUNT);
 
     // starting up the particle updater
@@ -258,11 +259,9 @@ void Display()
     // draw all particles
     // Note: All particles are points and are already in their world locations, so the shader 
     // does not use a transform matrix.
-    unsigned int numActiveParticles = gParticleUpdater.NumActiveParticles();
+    gParticleStorage.UpdateBufferData();
     glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("particles"));
     glBindVertexArray(gParticleStorage._vaoId);
-    glBindBuffer(GL_ARRAY_BUFFER, gParticleStorage._arrayBufferId);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, gParticleStorage._sizeBytes, gParticleStorage._allParticles.data());
     glDrawArrays(gParticleStorage._drawStyle, 0, gParticleStorage._allParticles.size());
 
     // geometry
@@ -276,7 +275,6 @@ void Display()
     // Note: The quad tree nodes' locations are based on an already-transformed center point and 
     // on particle locations, which don't have a transform.  But the geometry shader needs a 
     // transform, so give it the identity matrix to make it happy.
-    unsigned int numQuadTreeNodes = gParticleQuadTree.NumNodesInUse();
     gQuadTreeGeometry.UpdateBufferData();
     glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
     glBindVertexArray(gQuadTreeGeometry._vaoId);
@@ -314,12 +312,12 @@ void Display()
 
     // now show number of active particles
     // Note: For some reason, lower case "i" seems to appear too close to the other letters.
-    sprintf(str, "active: %d", numActiveParticles);
+    sprintf(str, "active: %d", gParticleUpdater.NumActiveParticles());
     float numActiveParticlesXY[2] = { -0.99f, +0.7f };
     gTextAtlases.GetAtlas(48)->RenderText(str, numActiveParticlesXY, scaleXY, color);
 
     // now draw the number of active quad tree nodes
-    sprintf(str, "nodes: %d", numQuadTreeNodes);
+    sprintf(str, "nodes: %d", gParticleQuadTree.NumNodesInUse());
     float numActiveNodesXY[2] = { -0.99f, +0.5f };
     gTextAtlases.GetAtlas(48)->RenderText(str, numActiveNodesXY, scaleXY, color);
 
