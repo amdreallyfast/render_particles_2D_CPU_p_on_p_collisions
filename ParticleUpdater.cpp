@@ -545,6 +545,7 @@ ParticleUpdater::ParticleUpdater() :
         _pEmitters[emitterIndex] = 0;
         _maxParticlesEmittedPerFrame[emitterIndex] = 0;
     }
+    _numActiveParticles = 0;
     _emitterCount = 0;
 }
 
@@ -598,17 +599,16 @@ Parameters:
                         emitters.
     numToUpdate         Same idea as "start index".
     deltatimeSec        Self-explanatory
-Returns:    
-    The number of active particles.  Useful for performance comparison with GPU version.
+Returns:    None
 Exception:  Safe
 Creator:    John Cox (7-4-2016)
 -----------------------------------------------------------------------------------------------*/
-unsigned int ParticleUpdater::Update(std::vector<Particle> &particleCollection, 
-    const unsigned int startIndex, const unsigned int numToUpdate, const float deltaTimeSec) const
+void ParticleUpdater::Update(std::vector<Particle> &particleCollection, 
+    const unsigned int startIndex, const unsigned int numToUpdate, const float deltaTimeSec)
 {
     if (_emitterCount == 0 || _pRegion == 0)
     {
-        return 0;
+        return;
     }
 
     //glm::vec2 particleRegionCenter(0.3f, 0.3f);
@@ -697,8 +697,16 @@ unsigned int ParticleUpdater::Update(std::vector<Particle> &particleCollection,
         }
     }
 
-    return numActiveParticles;
+    _numActiveParticles = numActiveParticles;
 }
+
+// TODO: header
+// returns The number of active particles.  Useful for performance comparison with GPU version.
+unsigned int ParticleUpdater::NumActiveParticles() const
+{
+    return _numActiveParticles;
+}
+
 
 /*-----------------------------------------------------------------------------------------------
 Description:

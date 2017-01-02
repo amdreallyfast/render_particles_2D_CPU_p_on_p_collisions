@@ -229,9 +229,32 @@ void Init()
     gTimer.Start();
 }
 
+// TODO: header
+void UpdateAllTheThings()
+{
+    gParticleUpdater.Update(gParticleStorage._allParticles, 0,
+        gParticleStorage._allParticles.size(), 0.01f);
+
+    gParticleQuadTree.ResetTree();
+    gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
+    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+
+    // tell glut to call this display() function again on the next iteration of the main loop
+    // Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does
+    // Also Note: This display() function will also be registered to run if the window is moved
+    // or if the viewport is resized.  If glutPostRedisplay() is not called, then as long as the
+    // window stays put and doesn't resize, display() won't be called again (tested with 
+    // debugging).
+    // Also Also Note: It doesn't matter where this is called in this function.  It sets a flag
+    // for glut's main loop and doesn't actually call the registered display function, but I 
+    // got into the habbit of calling it at the end.
+    glutPostRedisplay();
+
+}
+
 /*-----------------------------------------------------------------------------------------------
 Description:
-    This is the rendering function.  It tells OpenGL to clear out some color and depth buffers,
+    This is the "update and draw" function.  FreeGlut It tells OpenGL to clear out some color and depth buffers,
     to set up the data to draw, to draw than stuff, and to report any errors that it came across.
     This is not a user-called function.
 
@@ -248,8 +271,9 @@ void Display()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // update all particle locations and draw them
-    unsigned int numActiveParticles = gParticleUpdater.Update(gParticleStorage._allParticles, 0, 
-        gParticleStorage._allParticles.size(), 0.01f);
+    //gParticleUpdater.Update(gParticleStorage._allParticles, 0, 
+    //    gParticleStorage._allParticles.size(), 0.01f);
+    unsigned int numActiveParticles = gParticleUpdater.NumActiveParticles();
     glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("particles"));
     glBindVertexArray(gParticleStorage._vaoId);
     glBindBuffer(GL_ARRAY_BUFFER, gParticleStorage._arrayBufferId);
@@ -261,9 +285,10 @@ void Display()
     glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
 
     // update the quad tree and draw it
-    gParticleQuadTree.ResetTree();
-    gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
-    unsigned int numQuadTreeNodes = gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+    //gParticleQuadTree.ResetTree();
+    //gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
+    //unsigned int numQuadTreeNodes = gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+    unsigned int numQuadTreeNodes = gParticleQuadTree.NumNodesInUse();
     gQuadTreeGeometry.UpdateBufferData();
     //TODO: the quad tree nodes' locations are based on an already-transformed center point and on particle locations, which don't have a transform, so transition to updating polygon geometry prior to drawing
     glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));  // identity matrix transform
@@ -322,16 +347,16 @@ void Display()
     // tell the GPU to swap out the displayed buffer with the one that was just rendered
     glutSwapBuffers();
 
-    // tell glut to call this display() function again on the next iteration of the main loop
-    // Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does
-    // Also Note: This display() function will also be registered to run if the window is moved
-    // or if the viewport is resized.  If glutPostRedisplay() is not called, then as long as the
-    // window stays put and doesn't resize, display() won't be called again (tested with 
-    // debugging).
-    // Also Also Note: It doesn't matter where this is called in this function.  It sets a flag
-    // for glut's main loop and doesn't actually call the registered display function, but I 
-    // got into the habbit of calling it at the end.
-    glutPostRedisplay();
+    //// tell glut to call this display() function again on the next iteration of the main loop
+    //// Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does
+    //// Also Note: This display() function will also be registered to run if the window is moved
+    //// or if the viewport is resized.  If glutPostRedisplay() is not called, then as long as the
+    //// window stays put and doesn't resize, display() won't be called again (tested with 
+    //// debugging).
+    //// Also Also Note: It doesn't matter where this is called in this function.  It sets a flag
+    //// for glut's main loop and doesn't actually call the registered display function, but I 
+    //// got into the habbit of calling it at the end.
+    //glutPostRedisplay();
 }
 
 /*-----------------------------------------------------------------------------------------------
@@ -490,6 +515,7 @@ int main(int argc, char *argv[])
 
     Init();
 
+    glutIdleFunc(UpdateAllTheThings);
     glutDisplayFunc(Display);
     glutReshapeFunc(Reshape);
     glutKeyboardFunc(Keyboard);

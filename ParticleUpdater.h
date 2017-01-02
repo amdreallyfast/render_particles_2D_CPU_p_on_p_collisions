@@ -23,8 +23,9 @@ public:
     void AddEmitter(const IParticleEmitter *pEmitter, const int maxParticlesEmittedPerFrame);
     // no "remove emitter" method because this is just a demo
 
-    unsigned int Update(std::vector<Particle> &particleCollection, const unsigned int startIndex, 
-        const unsigned int numToUpdate, const float deltaTimeSec) const;
+    void Update(std::vector<Particle> &particleCollection, const unsigned int startIndex, 
+        const unsigned int numToUpdate, const float deltaTimeSec);
+    unsigned int NumActiveParticles() const;
     void ResetAllParticles(std::vector<Particle> &particleCollection) const;
 
 private:
@@ -34,6 +35,7 @@ private:
     const IParticleRegion *_pRegion;
 
     // use arrays instead of std::vector<...> for the sake of cache coherency
+    unsigned int _numActiveParticles;
     unsigned int _emitterCount;
     static const int MAX_EMITTERS = 5;
     const IParticleEmitter *_pEmitters[MAX_EMITTERS];

@@ -528,7 +528,7 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
 
 // TODO: header
 // Note: There are many duplicate nodes and lines, but this is just a demo.  I won't concern myself with trying to optimize this rendering aspect of the program.
-int ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime)
+void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime)
 {
     // the data changes potentially every frame, so have to clear out the existing data
     putDataHere->_verts.clear();
@@ -591,7 +591,14 @@ int ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTime
     // update the buffer size for the sake of glBufferData(...) and glBufferSubData(...)
     putDataHere->_vertexBufferSizeBytes = putDataHere->_verts.size() * sizeof(putDataHere->_verts[0]);
     putDataHere->_elementBufferSizeBytes = putDataHere->_indices.size() * sizeof(putDataHere->_indices[0]);
+}
 
-    // useful for printing current node count to the screen
+// TODO: header
+// useful for printing current node count to the screen
+// _numNodesInUse is modified in InitializeTree(...), ResetTree(), and SubdivideNode(...)
+
+int ParticleQuadTree::NumNodesInUse() const
+{
     return _numNodesInUse;
 }
+

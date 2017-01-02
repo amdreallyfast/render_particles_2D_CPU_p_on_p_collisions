@@ -17,7 +17,8 @@ public:
     bool SubdivideNode(int nodeIndex);  //??private??
     void AddParticlestoTree(std::vector<Particle> *particleCollection);
     
-    int GenerateGeometry(GeometryData *putDataHere, bool firstTime = false);
+    void GenerateGeometry(GeometryData *putDataHere, bool firstTime = false);
+    int NumNodesInUse() const;
 
 private:
 
