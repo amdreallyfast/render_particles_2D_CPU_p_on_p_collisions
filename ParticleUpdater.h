@@ -2,7 +2,6 @@
 
 #include "Particle.h"
 #include "IParticleEmitter.h"
-//#include "IParticleRegion.h"
 #include <vector>
 #include "glm/vec2.hpp"
 
@@ -20,7 +19,6 @@ class ParticleUpdater
 public:
     ParticleUpdater();
     
-    //void SetRegion(const IParticleRegion *pRegion);
     void SetRegion(const glm::vec2 &particleRegionCenter, const float particleRegionRadius);
     void AddEmitter(const IParticleEmitter *pEmitter, const int maxParticlesEmittedPerFrame);
     // no "remove emitter" method because this is just a demo
@@ -32,11 +30,6 @@ public:
 
 private:
     bool ParticleOutOfBounds(const Particle &p) const;
-
-    //// the form "const something *" means that it is a pointer to a const something, so the 
-    //// pointer can be changed for a new region or emitter, but the region or emitter itself 
-    //// can't be altered
-    //const IParticleRegion *_pRegion;
 
     // for future demos, the only region that is needed is a circle/sphere
     // Note: Future particle containment will be handled by particle-polygon collisions.

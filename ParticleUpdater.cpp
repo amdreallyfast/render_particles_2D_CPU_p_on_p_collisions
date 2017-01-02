@@ -1,7 +1,5 @@
 #include "ParticleUpdater.h"
 
-// TODO: remove particle regions, replace with a simple radius
-
 /*-----------------------------------------------------------------------------------------------
 Description:
     Ensures that the object starts object with initialized values.
@@ -31,12 +29,11 @@ Parameters:
     pRegion     A pointer to a "particle region" interface.
 Returns:    None
 Exception:  Safe
-Creator:    John Cox (7-4-2016)
+Creator:    John Cox (1-2-2017)
 -----------------------------------------------------------------------------------------------*/
-//void ParticleUpdater::SetRegion(const IParticleRegion *pRegion)
-void ParticleUpdater::SetRegion(const glm::vec2 &particleRegionCenter, const float particleRegionRadius)
+void ParticleUpdater::SetRegion(const glm::vec2 &particleRegionCenter, 
+    const float particleRegionRadius)
 {
-    //_pRegion = pRegion;
     _particleRegionCenter = particleRegionCenter;
     _particleRegionRadiusSqr = particleRegionRadius * particleRegionRadius;
 }
@@ -52,7 +49,8 @@ Returns:    None
 Exception:  Safe
 Creator:    John Cox (7-4-2016)
 -----------------------------------------------------------------------------------------------*/
-void ParticleUpdater::AddEmitter(const IParticleEmitter *pEmitter, const int maxParticlesEmittedPerFrame)
+void ParticleUpdater::AddEmitter(const IParticleEmitter *pEmitter, 
+    const int maxParticlesEmittedPerFrame)
 {
     if (_emitterCount >= MAX_EMITTERS)
     {
@@ -70,8 +68,6 @@ Description:
     emitter hasn't reached its quota for emitted particles, then the particle is sent back out 
     again.  Lastly, if the particle is active, then its position is updated with its velocity and
     the provided delta time.
-
-    //TODO: replace particle region with a simple circle
 Parameters:
     particleCollection  The particle collection that will be updated.
     startIndex          Used in case the user wanted to adapt the updater to use multiple 
@@ -86,7 +82,6 @@ Creator:    John Cox (7-4-2016)
 void ParticleUpdater::Update(std::vector<Particle> &particleCollection, 
     const unsigned int startIndex, const unsigned int numToUpdate, const float deltaTimeSec)
 {
-    //if (_emitterCount == 0 || _pRegion == 0)
     // if the radius is 0, then SetRegion(...) has not been called
     if (_emitterCount == 0 || _particleRegionRadiusSqr == 0.0f)
     {
@@ -124,7 +119,6 @@ void ParticleUpdater::Update(std::vector<Particle> &particleCollection,
     for (size_t particleIndex = startIndex; particleIndex < endIndex; particleIndex++)
     {
         Particle &pCopy = particleCollection[particleIndex];
-        //if (_pRegion->OutOfBounds(pCopy))
         if (ParticleOutOfBounds(pCopy))
         {
             pCopy._isActive = false;

@@ -45,8 +45,6 @@
 #include "PrimitiveGeneration.h"
 
 // for particles
-#include "ParticleRegionCircle.h"
-#include "ParticleRegionPolygon.h"
 #include "ParticleEmitterPoint.h"
 #include "ParticleEmitterBar.h"
 #include "ParticleStorage.h"
@@ -80,8 +78,6 @@ GeometryData gQuadTreeGeometry;
 glm::mat4 gRegionTransformMatrix;
 
 // in a bigger program, ??where would particle stuff be stored??
-//IParticleRegion *gpParticleRegionCircle;
-//IParticleRegion *gpParticleRegionPolygon;
 IParticleEmitter *gpParticleEmitterPoint;
 IParticleEmitter *gpParticleEmitterBar;
 ParticleUpdater gParticleUpdater;
@@ -178,23 +174,8 @@ void Init()
     gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry, true);
     gQuadTreeGeometry.Init(geometryProgramId);
 
-
-    //// circular particle region
-    //float circleRadius = 0.5f;
-    //glm::vec2 circleCenter = glm::vec2(0.0f, 0.0f);
-    //gpParticleRegionCircle = new ParticleRegionCircle(circleCenter, circleRadius);
-    //gpParticleRegionCircle->SetTransform(gRegionTransformMatrix);
-
-    //// polygon particle region
-    //std::vector<glm::vec2> polygonCorners;
-    //polygonCorners.push_back(glm::vec2(-0.25f, -0.5f));
-    //polygonCorners.push_back(glm::vec2(+0.25f, -0.5f));
-    //polygonCorners.push_back(glm::vec2(+0.5f, +0.25f));
-    //polygonCorners.push_back(glm::vec2(-0.5f, +0.25f));
-    //gpParticleRegionPolygon = new ParticleRegionPolygon(polygonCorners);
-    //gpParticleRegionPolygon->SetTransform(gRegionTransformMatrix);
-
-    // stick the point emitter in the center (changing this would only require some addition/subtraction from the "circle center"
+    // stick the point emitter in the center (changing this would only require some 
+    // addition/subtraction from the "circle center")
     gpParticleEmitterPoint = new ParticleEmitterPoint(glm::vec2(), 0.3f, 0.5f);
     gpParticleEmitterPoint->SetTransform(gRegionTransformMatrix);
 
@@ -211,8 +192,6 @@ void Init()
 
     // stick the particle region and emitters into a single "updater" object
     gParticleStorage.Init(particleProgramId, MAX_PARTICLE_COUNT);
-    //gParticleUpdater.SetRegion(gpParticleRegionCircle);
-    //gParticleUpdater.SetRegion(gpParticleRegionPolygon);
 
     // starting up the particle updater
     gParticleUpdater.SetRegion(particleRegionCenter, particleRegionRadius);
@@ -222,7 +201,6 @@ void Init()
     
     // starting up the particle quad tree
     gParticleQuadTree.InitializeTree(particleRegionCenter, particleRegionRadius);
-
 
     // the timer will be used for framerate calculations
     gTimer.Init();
@@ -305,9 +283,6 @@ void Display()
     glDrawElements(gQuadTreeGeometry._drawStyle, gQuadTreeGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
 
     // draw the particle region borders
-    //glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(gRegionTransformMatrix));
-    //glBindVertexArray(gPolygonGeometry._vaoId);
-    //glDrawElements(gPolygonGeometry._drawStyle, gPolygonGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
     glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(gRegionTransformMatrix));
     glBindVertexArray(gCircleGeometry._vaoId);
     glDrawElements(gCircleGeometry._drawStyle, gCircleGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
@@ -452,8 +427,6 @@ void CleanupAll()
 {
     // Note: If I attempt to delete an ID that has already been deleted, that is ok.  OpenGL
     // will silently swallow that.
-    //delete(gpParticleRegionCircle);
-    //delete(gpParticleRegionPolygon);
     delete(gpParticleEmitterBar);
     delete(gpParticleEmitterPoint);
 }

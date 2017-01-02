@@ -154,8 +154,6 @@
     <ClCompile Include="ParticleEmitterBar.cpp" />
     <ClCompile Include="ParticleEmitterPoint.cpp" />
     <ClCompile Include="ParticleQuadTree.cpp" />
-    <ClCompile Include="ParticleRegionPolygon.cpp" />
-    <ClCompile Include="ParticleRegionCircle.cpp" />
     <ClCompile Include="ParticleStorage.cpp" />
     <ClCompile Include="ParticleUpdater.cpp" />
     <ClCompile Include="PrimitiveGeneration.cpp" />
@@ -178,15 +176,12 @@
     <ClInclude Include="MyVertex.h" />
     <ClInclude Include="ParticleQuadTree.h" />
     <ClInclude Include="IParticleEmitter.h" />
-    <ClInclude Include="IParticleRegion.h" />
     <ClInclude Include="MinMaxVelocity.h" />
     <ClInclude Include="OpenGlErrorHandling.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="ParticleEmitterBar.h" />
     <ClInclude Include="ParticleEmitterPoint.h" />
     <ClInclude Include="ParticleQuadTreeNode.h" />
-    <ClInclude Include="ParticleRegionPolygon.h" />
-    <ClInclude Include="ParticleRegionCircle.h" />
     <ClInclude Include="ParticleStorage.h" />
     <ClInclude Include="ParticleUpdater.h" />
     <ClInclude Include="PrimitiveGeneration.h" />
