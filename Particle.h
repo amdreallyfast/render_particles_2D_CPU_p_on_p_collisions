@@ -14,8 +14,9 @@ struct Particle
 {
     Particle() :
         // glm structures already have "set to 0" constructors
+        _collisionCountThisFrame(0),
         _mass(0.1f),
-        _radiusOfInfluence(0.03f),
+        _radiusOfInfluence(0.01f),
         _currentQuadTreeIndex(0),
         _isActive(0)
     {
@@ -24,6 +25,8 @@ struct Particle
     glm::vec2 _position;
     glm::vec2 _velocity;
     glm::vec2 _netForce;
+
+    int _collisionCountThisFrame;
 
     // all particles are identical for now
     float _mass;

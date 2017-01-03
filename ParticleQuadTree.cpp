@@ -6,12 +6,6 @@
 
 
 
-// a temporary helper value
-// Note: In the GPU version, the "all particles" array will be readily available as a global.  The GPU cannot pass items by reference or pointer, so to avoid having this CPU version of the algorithm drift too much from the GPU version, I will use this pointer as a temporary value that will mimic the compute shader's global "all particles".
-static std::vector<Particle> *allParticles = 0;
-
-
-
 // TODO: check performance
 // TODO: after performance check
 //  - remove all "neighbor" indices
@@ -212,11 +206,8 @@ Returns:    None
 Exception:  Safe
 Creator:    John Cox (12-17-2016)
 -----------------------------------------------------------------------------------------------*/
-void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollection)
+void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> &particleCollection)
 {
-    // TODO: get rid of this
-    allParticles = particleCollection;
-
     float xIncrementPerColumn = 2.0f * _particleRegionRadius / _NUM_COLUMNS_IN_TREE_INITIAL;
     float yIncrementPerRow = 2.0f * _particleRegionRadius / _NUM_ROWS_IN_TREE_INITIAL;
 
@@ -224,9 +215,9 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
     float inverseXIncrementPerColumn = 1.0f / xIncrementPerColumn;
     float inverseYIncrementPerRow = 1.0f / yIncrementPerRow;
 
-    for (size_t particleIndex = 0; particleIndex < particleCollection->size(); particleIndex++)
+    for (size_t particleIndex = 0; particleIndex < particleCollection.size(); particleIndex++)
     {
-        Particle &p = (*particleCollection)[particleIndex];
+        Particle &p = particleCollection[particleIndex];
         if (p._isActive == 0)
         {
             // only add active particles
@@ -264,91 +255,37 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
 
         // same index calulation as in InitializeTree(...)
         int nodeIndex = (rowInt * _NUM_COLUMNS_IN_TREE_INITIAL) + colInt;
-        AddParticleToNode(particleIndex, nodeIndex);
+        AddParticleToNode(particleIndex, nodeIndex, particleCollection);
     }
 }
 
 // TODO: header
-void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection, float deltaTime) const
+void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection, float deltaTimeSec) const
 {
     for (int nodeIndex = 0; nodeIndex < _numNodesInUse; nodeIndex++)
     {
+        if (nodeIndex == 19)
+        {
+            printf("");
+        }
         const QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
 
-        if (!node._inUse || node._isSubdivided || node._numCurrentParticles == 0)
+        if (!node._inUse)
         {
-            // does not contain any particles
             continue;
         }
-
-        // check all particles in the node for collisions against all other particles in the node
-        // Note: The -1 prevents array overrun with the inner loop that starts at particleCount + 1.
-        for (int particleCount = 0; 
-            particleCount < (node._numCurrentParticles - 1); 
-            particleCount++)
+        else if (node._isSubdivided)
         {
-            int particle1Index = node._indicesForContainedParticles[particleCount];
-            Particle &p1 = particleCollection[particle1Index];
-
-            for (int particleCompareCount = particleCount + 1;
-                particleCompareCount < node._numCurrentParticles; 
-                particleCompareCount++)
-            {
-                int particle2Index = node._indicesForContainedParticles[particleCompareCount];
-
-                Particle &p2 = particleCollection[particle2Index];
-
-                glm::vec2 p1ToP2 = p2._position - p1._position;
-
-                // partial pythagorean theorem
-                float distanceBetweenSqr = (p1ToP2.x * p1ToP2.x) + (p1ToP2.y * p1ToP2.y);
-
-                float minDistanceForCollisionSqr = (p1._radiusOfInfluence + p2._radiusOfInfluence);
-                minDistanceForCollisionSqr = minDistanceForCollisionSqr * minDistanceForCollisionSqr;
-
-                if (distanceBetweenSqr < minDistanceForCollisionSqr)
-                {
-                    // elastic collision with conservation of momentum
-                    // Note: For an elastic collision between two particles of equal mass, the 
-                    // velocities of the two will be exchanged.  I could use this simplified 
-                    // idea for this demo, but I want to eventually have the option of different 
-                    // masses of particles, so I will use the general case elastic collision 
-                    // calculations (bottom of page at link).
-                    // http://hyperphysics.phy-astr.gsu.edu/hbase/colsta.html
-
-                    // for elastic collisions between two masses (ignoring rotation because 
-                    // these particles are points), use the calculations from this article (I 
-                    // followed them on paper too and it seems legit)
-                    // http://www.gamasutra.com/view/feature/3015/pool_hall_lessons_fast_accurate_.php?page=3
-
-                    glm::vec2 normalizedLineOfContact = glm::normalize(p1ToP2);
-
-                    float a1 = glm::dot(p1._velocity, p1ToP2);
-                    float a2 = glm::dot(p2._velocity, p1ToP2);
-
-                    // ??what else do I call it??
-                    float fraction = (2.0f * (a1 - a2)) / (p1._mass + p2._mass);
-
-                    // keep the intermediate "prime" values around for debugging
-                    glm::vec2 v1Prime = p1._velocity - (fraction * p2._mass) * normalizedLineOfContact;
-                    glm::vec2 v2Prime = p2._velocity + (fraction * p1._mass) * normalizedLineOfContact;
-
-                    glm::vec2 p1InitialMomentum = p1._velocity * p1._mass;
-                    glm::vec2 p2InitialMomentum = p2._velocity * p2._mass;
-                    glm::vec2 p1FinalMomentum = v1Prime * p1._mass;
-                    glm::vec2 p2FinalMomentum = v2Prime * p2._mass;
-
-                    // delta momentum (impulse) = force * delta time
-                    // therefore force = delta momentum / delta time
-                    glm::vec2 p1Force = (p1FinalMomentum - p1InitialMomentum) / deltaTime;
-                    glm::vec2 p2Force = (p2FinalMomentum - p2InitialMomentum) / deltaTime;
-
-                    //p1._velocity = v1Prime;
-                    //p2._velocity = v2Prime;
-                    p1._netForce += p1Force;
-                    p2._netForce += p2Force;
-                }
-            }
+            // check the children
+            ParticleCollisionsWithinNode(node._childNodeIndexTopLeft, deltaTimeSec, particleCollection);
+            ParticleCollisionsWithinNode(node._childNodeIndexTopRight, deltaTimeSec, particleCollection);
+            ParticleCollisionsWithinNode(node._childNodeIndexBottomRight, deltaTimeSec, particleCollection);
+            ParticleCollisionsWithinNode(node._childNodeIndexBottomLeft, deltaTimeSec, particleCollection);
+        }
+        else if (!node._numCurrentParticles == 0)
+        {
+            // check for collisions within this node only
+            ParticleCollisionsWithinNode(nodeIndex, deltaTimeSec, particleCollection);
         }
     }
 }
@@ -470,13 +407,14 @@ Description:
 Parameters: 
     particleIndex   The particle that needs to be added.
     nodeIndex       The quad tree node to add the particle to.
+    particleCollection  Self-explanatory
 Returns:    None
 Exception:  Safe
 Creator:    John Cox (12-17-2016)
 -----------------------------------------------------------------------------------------------*/
-bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
+bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex, std::vector<Particle> &particleCollection)
 {
-    Particle &p = (*allParticles)[particleIndex];
+    Particle &p = particleCollection[particleIndex];
     QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
     int destinationNodeIndex = -1;
 
@@ -487,7 +425,7 @@ bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
         if (numParticlesThisNode == MAX_PARTICLES_PER_QUAD_TREE_NODE)
         {
             // ran out of space, so split the node and add the particles to its children
-            if (!SubdivideNode(nodeIndex))
+            if (!SubdivideNode(nodeIndex, particleCollection))
             {
                 // no space left
                 return false;
@@ -543,7 +481,7 @@ bool ParticleQuadTree::AddParticleToNode(int particleIndex, int nodeIndex)
         }
     }
 
-    return AddParticleToNode(particleIndex, destinationNodeIndex);
+    return AddParticleToNode(particleIndex, destinationNodeIndex, particleCollection);
 }
 
 /*-----------------------------------------------------------------------------------------------
@@ -554,11 +492,12 @@ Description:
     // TODO: get rid of "neighbors" 
 Parameters: 
     nodeIndex       The quad tree node to split
+    particleCollection  Self-explanatory.
 Returns:    None
 Exception:  Safe
 Creator:    John Cox (12-17-2016)
 -----------------------------------------------------------------------------------------------*/
-bool ParticleQuadTree::SubdivideNode(int nodeIndex)
+bool ParticleQuadTree::SubdivideNode(int nodeIndex, std::vector<Particle> &particleCollection)
 {
     QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
 
@@ -646,7 +585,7 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
     for (int particleCount = 0; particleCount < node._numCurrentParticles; particleCount++)
     {
         int particleIndex = node._indicesForContainedParticles[particleCount];
-        Particle &p = (*allParticles)[particleIndex];
+        Particle &p = particleCollection[particleIndex];
 
         // the node is subdivided, so add the particle to the child nodes
         int childNodeIndex = -1;
@@ -679,7 +618,7 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
             }
         }
 
-        AddParticleToNode(particleIndex, childNodeIndex);
+        AddParticleToNode(particleIndex, childNodeIndex, particleCollection);
 
         // not actually necessary because the array will be run over on the next update, but I 
         // still like to clean up after myself in case of debugging
@@ -692,3 +631,214 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
     return true;
 }
 
+
+// TODO: header
+void ParticleQuadTree::ParticleCollisionsWithinNode(int nodeIndex, float deltaTimeSec, std::vector<Particle> &particleCollection) const
+{
+    const QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
+
+    if (node._isSubdivided)
+    {
+        // only check the children
+        ParticleCollisionsWithinNode(node._childNodeIndexTopLeft, deltaTimeSec, particleCollection);
+        ParticleCollisionsWithinNode(node._childNodeIndexTopRight, deltaTimeSec, particleCollection);
+        ParticleCollisionsWithinNode(node._childNodeIndexBottomRight, deltaTimeSec, particleCollection);
+        ParticleCollisionsWithinNode(node._childNodeIndexBottomLeft, deltaTimeSec, particleCollection);
+
+        return;
+    }
+
+    // check all particles in the node for collisions against all other particles in the node
+    // Note: The -1 prevents array overrun with the inner loop that starts at 
+    // particleCount + 1.
+    for (int particleCount = 0;
+        particleCount < (node._numCurrentParticles - 1);
+        particleCount++)
+    {
+        int particle1Index = node._indicesForContainedParticles[particleCount];
+
+        // do not do an N^2 solution or else there will be duplicate particle-particle 
+        // calculations
+        // Note: The particle-particle collisions calulate the force applied by p1 on p2 and 
+        // by p2 on p1.  To prevent duplicate calculations, start the following loop at the 
+        // next particle in the node.  This approach makes sure that any two particles are 
+        // only compared once.  
+        for (int particleCompareCount = particleCount + 1;
+            particleCompareCount < node._numCurrentParticles;
+            particleCompareCount++)
+        {
+            int particle2Index = node._indicesForContainedParticles[particleCompareCount];
+
+            ParticleCollisionP1WithP2(particle1Index, particle2Index, deltaTimeSec, particleCollection);
+        }
+
+        // check against all 8 neighbors
+        // Note: If a particle is in a corner of a small particle region, it is possible for its 
+        // region of influence to extend into multiple neighbors, so just use if(...) and not 
+        // else if(...).
+        Particle &p1 = particleCollection[particle1Index];
+
+        float x = p1._position.x;
+        float y = p1._position.y;
+        float r = p1._radiusOfInfluence;
+
+        // sin(45) == cos(45) == sqrt(2) / 2
+        // Note: The particle's region of influence is circular.  Use a radius value modified by 
+        // sin(45) to check whether the diagonal radius extends into a neighbor.
+        float sqrt2Over2 = 0.70710678118f;
+        float diagonalR = p1._radiusOfInfluence * sqrt2Over2;
+
+        // remember that y increases from top to bottom (y = 0 at top, y = 1 at bottom)
+        bool xWithinThisNode = (x > node._leftEdge) && (x < node._rightEdge);
+        bool xLeft = x - r < node._leftEdge;
+        bool xRight = x + r > node._rightEdge;
+        bool xDiagonalLeft = x - diagonalR < node._leftEdge;
+        bool xDiagonalRight = x + diagonalR > node._leftEdge;
+
+        bool yWithinThisNode = (y > node._topEdge) && (y < node._bottomEdge);
+        bool yTop = y - r < node._topEdge;
+        bool yBottom = y + r > node._bottomEdge;
+        bool yDiagonalTop = y - diagonalR < node._topEdge;
+        bool yDiagonalBottom = y + diagonalR > node._bottomEdge;
+
+        bool topLeft = xDiagonalLeft && yDiagonalTop;
+        bool top = xWithinThisNode && yTop;
+        bool topRight = xDiagonalRight && yDiagonalTop;
+        bool right = xRight && yWithinThisNode;
+        bool bottomRight = xDiagonalRight && yDiagonalBottom;
+        bool bottom = xWithinThisNode && yBottom;
+        bool bottomLeft = xDiagonalLeft && yDiagonalBottom;
+        bool left = xLeft && yWithinThisNode;
+
+        if (topLeft)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexTopLeft, deltaTimeSec, particleCollection);
+        }
+
+        if (top)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexTop, deltaTimeSec, particleCollection);
+        }
+
+        if (topRight)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexTopRight, deltaTimeSec, particleCollection);
+        }
+
+        if (right)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexRight, deltaTimeSec, particleCollection);
+        }
+
+        if (bottomRight)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexBottomRight, deltaTimeSec, particleCollection);
+        }
+
+        if (bottom)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexBottom, deltaTimeSec, particleCollection);
+        }
+
+        if (bottomLeft)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexBottomLeft, deltaTimeSec, particleCollection);
+        }
+
+        if (left)
+        {
+            ParticleCollisionsWithNeighboringNode(particleCount, node._neighborIndexLeft, deltaTimeSec, particleCollection);
+        }
+    }
+}
+
+// TODO: header
+void ParticleQuadTree::ParticleCollisionsWithNeighboringNode(int particleIndex, int nodeIndex, float deltaTimeSec, std::vector<Particle> &particleCollection) const
+{
+    const QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
+
+    for (int particleCompareCount = 0;
+        particleCompareCount < node._numCurrentParticles;
+        particleCompareCount++)
+    {
+        int particle2Index = node._indicesForContainedParticles[particleCompareCount];
+
+        ParticleCollisionP1WithP2(particleIndex, particle2Index, deltaTimeSec, particleCollection);
+    }
+
+}
+
+float inline FastInverseSquareRoot(float x)
+{
+    float xHalf = 0.5f * x;
+    int i = *(int *)&x;
+    i = 0x5f3759df - (i >> 1);
+    x = *(float *)&i;
+    x = x *(1.5f - (xHalf * x * x));
+
+    return x;
+}
+
+// TODO: header
+// Calculates and adds force for P1 on P2 and P2 on P1.  An N^2 particle collision approach will result in duplicate force calculations.  
+void ParticleQuadTree::ParticleCollisionP1WithP2(int p1Index, int p2Index, float deltaTimeSec, std::vector<Particle> &particleCollection) const
+{
+    Particle &p1 = particleCollection[p1Index];
+    Particle &p2 = particleCollection[p2Index];
+
+    glm::vec2 p1ToP2 = p2._position - p1._position;
+
+    // partial pythagorean theorem
+    float distanceBetweenSqr = (p1ToP2.x * p1ToP2.x) + (p1ToP2.y * p1ToP2.y);
+
+    float minDistanceForCollisionSqr = (p1._radiusOfInfluence + p2._radiusOfInfluence);
+    minDistanceForCollisionSqr = minDistanceForCollisionSqr * minDistanceForCollisionSqr;
+
+    if (distanceBetweenSqr < minDistanceForCollisionSqr)
+    {
+        // elastic collision with conservation of momentum
+        // Note: For an elastic collision between two particles of equal mass, the 
+        // velocities of the two will be exchanged.  I could use this simplified 
+        // idea for this demo, but I want to eventually have the option of different 
+        // masses of particles, so I will use the general case elastic collision 
+        // calculations (bottom of page at link).
+        // http://hyperphysics.phy-astr.gsu.edu/hbase/colsta.html
+
+        // for elastic collisions between two masses (ignoring rotation because 
+        // these particles are points), use the calculations from this article (I 
+        // followed them on paper too and it seems legit)
+        // http://www.gamasutra.com/view/feature/3015/pool_hall_lessons_fast_accurate_.php?page=3
+
+        //glm::vec2 normalizedLineOfContact = glm::normalize(p1ToP2);
+        float lineOfContactMagnitudeSqr = glm::dot(p1ToP2, p1ToP2);
+        glm::vec2 normalizedLineOfContact = p1ToP2 * FastInverseSquareRoot(lineOfContactMagnitudeSqr);
+
+        float a1 = glm::dot(p1._velocity, p1ToP2);
+        float a2 = glm::dot(p2._velocity, p1ToP2);
+
+        // ??what else do I call it??
+        float fraction = (2.0f * (a1 - a2)) / (p1._mass + p2._mass);
+
+        // keep the intermediate "prime" values around for debugging
+        glm::vec2 v1Prime = p1._velocity - (fraction * p2._mass) * normalizedLineOfContact;
+        glm::vec2 v2Prime = p2._velocity + (fraction * p1._mass) * normalizedLineOfContact;
+
+        glm::vec2 p1InitialMomentum = p1._velocity * p1._mass;
+        glm::vec2 p2InitialMomentum = p2._velocity * p2._mass;
+        glm::vec2 p1FinalMomentum = v1Prime * p1._mass;
+        glm::vec2 p2FinalMomentum = v2Prime * p2._mass;
+
+        // delta momentum (impulse) = force * delta time
+        // therefore force = delta momentum / delta time
+        glm::vec2 p1Force = (p1FinalMomentum - p1InitialMomentum) / deltaTimeSec;
+        glm::vec2 p2Force = (p2FinalMomentum - p2InitialMomentum) / deltaTimeSec;
+
+        //p1._velocity = v1Prime;
+        //p2._velocity = v2Prime;
+        p1._netForce += p1Force;
+        p2._netForce += p2Force;
+
+        p1._collisionCountThisFrame += 1;
+        p2._collisionCountThisFrame += 1;
+    }
+}

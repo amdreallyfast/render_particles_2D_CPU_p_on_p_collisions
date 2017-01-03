@@ -17,15 +17,20 @@ public:
     ParticleQuadTree();
     void InitializeTree(const glm::vec2 &particleRegionCenter, float particleRegionRadius);
     void ResetTree();
-    void AddParticlestoTree(std::vector<Particle> *particleCollection);
+    void AddParticlestoTree(std::vector<Particle> &particleCollection);
     void DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection, float deltaTime) const;
 
     void GenerateGeometry(GeometryData *putDataHere, bool firstTime = false);
     int NumNodesInUse() const;
 
 private:
-    bool AddParticleToNode(int particleIndex, int nodeIndex);
-    bool SubdivideNode(int nodeIndex);
+    bool AddParticleToNode(int particleIndex, int nodeIndex, std::vector<Particle> &particleCollection);
+    bool SubdivideNode(int nodeIndex, std::vector<Particle> &particleCollection);
+
+    //int NodeLookUp(const glm::vec2 &position);
+    void ParticleCollisionsWithinNode(int nodeIndex, float deltaTimeSec, std::vector<Particle> &particleCollection) const;
+    void ParticleCollisionsWithNeighboringNode(int particleIndex, int nodeIndex, float deltaTimeSec, std::vector<Particle> &particleCollection) const;
+    void ParticleCollisionP1WithP2(int thisParticleIndex, int otherParticleIndex, float deltaTimeSec, std::vector<Particle> &particleCollection) const;
 
     // increase the number of additional nodes as necessary to handle more subdivision
     // Note: This algorithm was built with the compute shader's implementation in mind.  These 

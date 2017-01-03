@@ -206,8 +206,8 @@ void Init()
 
     // starting up the particle updater
     gParticleUpdater.SetRegion(particleRegionCenter, particleRegionRadius);
-    gParticleUpdater.AddEmitter(gpParticleEmitterBar1, 5);
-    gParticleUpdater.AddEmitter(gpParticleEmitterBar2, 5);
+    gParticleUpdater.AddEmitter(gpParticleEmitterBar1, 1);
+    gParticleUpdater.AddEmitter(gpParticleEmitterBar2, 1);
     //gParticleUpdater.AddEmitter(gpParticleEmitterPoint, 10);
     gParticleUpdater.ResetAllParticles(gParticleStorage._allParticles);
     
@@ -239,7 +239,7 @@ void UpdateAllTheThings()
 
     // update quad tree
     gParticleQuadTree.ResetTree();
-    gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
+    gParticleQuadTree.AddParticlestoTree(gParticleStorage._allParticles);
 
     // check for collisions
     gParticleQuadTree.DoTheParticleParticleCollisions(gParticleStorage._allParticles, deltaTimeSec);
@@ -282,27 +282,27 @@ void Display()
     glBindVertexArray(gParticleStorage._vaoId);
     glDrawArrays(gParticleStorage._drawStyle, 0, gParticleStorage._allParticles.size());
 
-    //// geometry
-    //// Note: I have read that, due to variances in OpenGL implementation on different drivers, I 
-    //// should avoid extra calls to glUseProgram(...).  On some implementations the extra call 
-    //// might be ignored, on some it reloads the same program, and on others it can crash.  So I 
-    //// am putting the call out in front of the geometry drawing.  
-    //glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
+    // geometry
+    // Note: I have read that, due to variances in OpenGL implementation on different drivers, I 
+    // should avoid extra calls to glUseProgram(...).  On some implementations the extra call 
+    // might be ignored, on some it reloads the same program, and on others it can crash.  So I 
+    // am putting the call out in front of the geometry drawing.  
+    glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
 
-    //// draw the quad tree
-    //// Note: The quad tree nodes' locations are based on an already-transformed center point and 
-    //// on particle locations, which don't have a transform.  But the geometry shader needs a 
-    //// transform, so give it the identity matrix to make it happy.
-    //gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
-    //gQuadTreeGeometry.UpdateBufferData();
-    //glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
-    //glBindVertexArray(gQuadTreeGeometry._vaoId);
-    //glDrawElements(gQuadTreeGeometry._drawStyle, gQuadTreeGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
+    // draw the quad tree
+    // Note: The quad tree nodes' locations are based on an already-transformed center point and 
+    // on particle locations, which don't have a transform.  But the geometry shader needs a 
+    // transform, so give it the identity matrix to make it happy.
+    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+    gQuadTreeGeometry.UpdateBufferData();
+    glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
+    glBindVertexArray(gQuadTreeGeometry._vaoId);
+    glDrawElements(gQuadTreeGeometry._drawStyle, gQuadTreeGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
 
-    //// draw the particle region borders
-    //glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(gRegionTransformMatrix));
-    //glBindVertexArray(gCircleGeometry._vaoId);
-    //glDrawElements(gCircleGeometry._drawStyle, gCircleGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
+    // draw the particle region borders
+    glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(gRegionTransformMatrix));
+    glBindVertexArray(gCircleGeometry._vaoId);
+    glDrawElements(gCircleGeometry._drawStyle, gCircleGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
 
 
     // draw the frame rate once per second in the lower left corner

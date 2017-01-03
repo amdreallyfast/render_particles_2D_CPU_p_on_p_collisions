@@ -129,7 +129,10 @@ void ParticleUpdater::Update(std::vector<Particle> &particleCollection,
             glm::vec2 acceleration = p._netForce / p._mass;
             p._velocity += (acceleration * deltaTimeSec);
             p._position = p._position + (p._velocity * deltaTimeSec);
+
+            // preparation for collision resolution
             p._netForce = glm::vec2();
+            p._collisionCountThisFrame = 0;
 
             if (ParticleOutOfBounds(p))
             {
