@@ -15,7 +15,7 @@ struct Particle
     Particle() :
         // glm structures already have "set to 0" constructors
         _mass(0.1f),
-        _radiusOfInfluence(0.1f),
+        _radiusOfInfluence(0.03f),
         _currentQuadTreeIndex(0),
         _isActive(0)
     {

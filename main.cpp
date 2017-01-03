@@ -162,11 +162,12 @@ void Init()
 
     // same radius and center for the particle region and the quad tree
     // Note: The circle starts centered on the origin and the translate matrix will move it.
-    // Also Note: The 1.0f makes it translatable.
-    gRegionTransformMatrix = glm::translate(glm::mat4(), glm::vec3(+0.3f, +0.3f, 0.0f));
-    gRegionTransformMatrix *= glm::rotate(glm::mat4(), 10.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    gRegionTransformMatrix = glm::translate(glm::mat4(), glm::vec3(+0.0f, +0.0f, 0.0f));
+    gRegionTransformMatrix *= glm::rotate(glm::mat4(), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    // Note: The 1.0f makes it translatable.
     glm::vec2 particleRegionCenter = glm::vec2(gRegionTransformMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    float particleRegionRadius = 0.5f;
+    float particleRegionRadius = 0.8f;
 
     // starting up geometry 
     GenerateCircle(&gCircleGeometry, particleRegionRadius, true);
@@ -182,17 +183,17 @@ void Init()
     // stick the emitter bar on the left side of the circle, have it emit right, and make the 
     // particles slow compared to the point emitter 
     // Note: Have to use vec4s instead of vec2s because glm::translate(...) only spits out mat4.
-    glm::vec2 bar1P1 = glm::vec2(-0.3f, +0.1f);
-    glm::vec2 bar1P2 = glm::vec2(-0.3f, -0.1f);
+    glm::vec2 bar1P1 = glm::vec2(-0.5f, +0.1f);
+    glm::vec2 bar1P2 = glm::vec2(-0.5f, -0.1f);
     glm::vec2 emitDirection1(+1.0f, 0.5f);
     float minVel = 0.1f;
-    float maxVel = 0.3f;
+    float maxVel = 0.5f;
     gpParticleEmitterBar1 = new ParticleEmitterBar(bar1P1, bar1P2, emitDirection1, minVel, maxVel);
     gpParticleEmitterBar1->SetTransform(gRegionTransformMatrix);
 
     // a bar emitting particles in a colliding direction
-    glm::vec2 bar2P1 = glm::vec2(+0.3f, +0.1f);
-    glm::vec2 bar2P2 = glm::vec2(+0.3f, -0.1f);
+    glm::vec2 bar2P1 = glm::vec2(+0.5f, +0.1f);
+    glm::vec2 bar2P2 = glm::vec2(+0.5f, -0.1f);
     glm::vec2 emitDirection2(-1.0f, 0.5f);
     gpParticleEmitterBar2 = new ParticleEmitterBar(bar2P1, bar2P2, emitDirection2, minVel, maxVel);
     gpParticleEmitterBar2->SetTransform(gRegionTransformMatrix);
@@ -281,27 +282,27 @@ void Display()
     glBindVertexArray(gParticleStorage._vaoId);
     glDrawArrays(gParticleStorage._drawStyle, 0, gParticleStorage._allParticles.size());
 
-    // geometry
-    // Note: I have read that, due to variances in OpenGL implementation on different drivers, I 
-    // should avoid extra calls to glUseProgram(...).  On some implementations the extra call 
-    // might be ignored, on some it reloads the same program, and on others it can crash.  So I 
-    // am putting the call out in front of the geometry drawing.  
-    glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
+    //// geometry
+    //// Note: I have read that, due to variances in OpenGL implementation on different drivers, I 
+    //// should avoid extra calls to glUseProgram(...).  On some implementations the extra call 
+    //// might be ignored, on some it reloads the same program, and on others it can crash.  So I 
+    //// am putting the call out in front of the geometry drawing.  
+    //glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("geometry"));
 
-    // draw the quad tree
-    // Note: The quad tree nodes' locations are based on an already-transformed center point and 
-    // on particle locations, which don't have a transform.  But the geometry shader needs a 
-    // transform, so give it the identity matrix to make it happy.
-    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
-    gQuadTreeGeometry.UpdateBufferData();
-    glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
-    glBindVertexArray(gQuadTreeGeometry._vaoId);
-    glDrawElements(gQuadTreeGeometry._drawStyle, gQuadTreeGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
+    //// draw the quad tree
+    //// Note: The quad tree nodes' locations are based on an already-transformed center point and 
+    //// on particle locations, which don't have a transform.  But the geometry shader needs a 
+    //// transform, so give it the identity matrix to make it happy.
+    //gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+    //gQuadTreeGeometry.UpdateBufferData();
+    //glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
+    //glBindVertexArray(gQuadTreeGeometry._vaoId);
+    //glDrawElements(gQuadTreeGeometry._drawStyle, gQuadTreeGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
 
-    // draw the particle region borders
-    glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(gRegionTransformMatrix));
-    glBindVertexArray(gCircleGeometry._vaoId);
-    glDrawElements(gCircleGeometry._drawStyle, gCircleGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
+    //// draw the particle region borders
+    //glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(gRegionTransformMatrix));
+    //glBindVertexArray(gCircleGeometry._vaoId);
+    //glDrawElements(gCircleGeometry._drawStyle, gCircleGeometry._indices.size(), GL_UNSIGNED_SHORT, 0);
 
 
     // draw the frame rate once per second in the lower left corner
