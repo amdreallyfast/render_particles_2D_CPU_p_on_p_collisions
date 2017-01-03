@@ -118,25 +118,30 @@ void ParticleUpdater::Update(std::vector<Particle> &particleCollection,
 
     for (size_t particleIndex = startIndex; particleIndex < endIndex; particleIndex++)
     {
-        Particle &pCopy = particleCollection[particleIndex];
+        Particle &p = particleCollection[particleIndex];
 
-        if (pCopy._isActive)
+        if (p._isActive)
         {
             numActiveParticles++;
-            pCopy._position = pCopy._position + (pCopy._velocity * deltaTimeSec);
 
-            if (ParticleOutOfBounds(pCopy))
+            // velocity += acceleration * delta time
+            // force = mass * acceleration => acceleration = force / mass
+            glm::vec2 acceleration = p._netForce / p._mass;
+            p._velocity += (acceleration * deltaTimeSec);
+            p._position = p._position + (p._velocity * deltaTimeSec);
+            p._netForce = glm::vec2();
+
+            if (ParticleOutOfBounds(p))
             {
-                pCopy._isActive = false;
+                p._isActive = false;
             }
         }
         else if (emitterIndex < MAX_EMITTERS)   // also implicitly, "is active" is false
         {
             // if all emitters have put out all they can this frame, then this condition will 
             // not be entered
-            _pEmitters[emitterIndex]->ResetParticle(&pCopy);
-            pCopy._isActive = true;
-            particleCollection[particleIndex] = pCopy;
+            _pEmitters[emitterIndex]->ResetParticle(&p);
+            p._isActive = true;
 
             particleEmitCounter++;
             if (particleEmitCounter >= _maxParticlesEmittedPerFrame[emitterIndex])

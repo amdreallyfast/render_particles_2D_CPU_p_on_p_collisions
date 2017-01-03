@@ -333,8 +333,20 @@ void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &pa
                     glm::vec2 v1Prime = p1._velocity - (fraction * p2._mass) * normalizedLineOfContact;
                     glm::vec2 v2Prime = p2._velocity + (fraction * p1._mass) * normalizedLineOfContact;
 
-                    p1._velocity = v1Prime;
-                    p2._velocity = v2Prime;
+                    glm::vec2 p1InitialMomentum = p1._velocity * p1._mass;
+                    glm::vec2 p2InitialMomentum = p2._velocity * p2._mass;
+                    glm::vec2 p1FinalMomentum = v1Prime * p1._mass;
+                    glm::vec2 p2FinalMomentum = v2Prime * p2._mass;
+
+                    // delta momentum (impulse) = force * delta time
+                    // therefore force = delta momentum / delta time
+                    glm::vec2 p1Force = (p1FinalMomentum - p1InitialMomentum) / deltaTime;
+                    glm::vec2 p2Force = (p2FinalMomentum - p2InitialMomentum) / deltaTime;
+
+                    //p1._velocity = v1Prime;
+                    //p2._velocity = v2Prime;
+                    p1._netForce += p1Force;
+                    p2._netForce += p2Force;
                 }
             }
         }
