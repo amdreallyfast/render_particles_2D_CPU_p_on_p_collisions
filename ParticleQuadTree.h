@@ -18,7 +18,7 @@ public:
     void InitializeTree(const glm::vec2 &particleRegionCenter, float particleRegionRadius);
     void ResetTree();
     void AddParticlestoTree(std::vector<Particle> *particleCollection);
-    void DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection) const;
+    void DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection, float deltaTime) const;
 
     void GenerateGeometry(GeometryData *putDataHere, bool firstTime = false);
     int NumNodesInUse() const;

@@ -89,10 +89,18 @@ void ParticleStorage::Init(unsigned int programId, unsigned int numParticles)
     glEnableVertexAttribArray(vertexArrayIndex);
     glVertexAttribPointer(vertexArrayIndex, numItems, itemType, GL_FALSE, bytesPerStep, (void *)bufferStartOffset);
 
+    // net force
+    itemType = GL_FLOAT;
+    numItems = sizeof(Particle::_netForce) / sizeof(float);
+    bufferStartOffset += sizeof(Particle::_velocity);
+    vertexArrayIndex++;
+    glEnableVertexAttribArray(vertexArrayIndex);
+    glVertexAttribPointer(vertexArrayIndex, numItems, itemType, GL_FALSE, bytesPerStep, (void *)bufferStartOffset);
+
     // mass
     itemType = GL_FLOAT;
     numItems = sizeof(Particle::_mass) / sizeof(float);
-    bufferStartOffset += sizeof(Particle::_velocity);
+    bufferStartOffset += sizeof(Particle::_netForce);
     vertexArrayIndex++;
     glEnableVertexAttribArray(vertexArrayIndex);
     glVertexAttribPointer(vertexArrayIndex, numItems, itemType, GL_FALSE, bytesPerStep, (void *)bufferStartOffset);

@@ -269,12 +269,12 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
 }
 
 // TODO: header
-void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection) const
+void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection, float deltaTime) const
 {
     for (int nodeIndex = 0; nodeIndex < _numNodesInUse; nodeIndex++)
     {
         const QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
-        
+
         if (!node._inUse || node._isSubdivided || node._numCurrentParticles == 0)
         {
             // does not contain any particles
@@ -290,11 +290,12 @@ void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &pa
             int particle1Index = node._indicesForContainedParticles[particleCount];
             Particle &p1 = particleCollection[particle1Index];
 
-            for (int particleCompareCount = particleCount + 1; 
+            for (int particleCompareCount = particleCount + 1;
                 particleCompareCount < node._numCurrentParticles; 
                 particleCompareCount++)
             {
                 int particle2Index = node._indicesForContainedParticles[particleCompareCount];
+
                 Particle &p2 = particleCollection[particle2Index];
 
                 glm::vec2 p1ToP2 = p2._position - p1._position;
@@ -320,50 +321,17 @@ void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &pa
                     // followed them on paper too and it seems legit)
                     // http://www.gamasutra.com/view/feature/3015/pool_hall_lessons_fast_accurate_.php?page=3
 
-                    glm::dvec2 p1Velocity(p1._velocity);
-                    glm::dvec2 p2Velocity(p2._velocity);
-                    double p1Mass = p1._mass;
-                    double p2Mass = p2._mass;
-                    glm::dvec2 lineOfContact(p1ToP2);
-                    glm::dvec2 normalizedLineOfContact = glm::normalize(lineOfContact);
+                    glm::vec2 normalizedLineOfContact = glm::normalize(p1ToP2);
 
-                    //glm::vec2 normalizedLineOfContact = glm::normalize(lineOfContact);
-
-                    //float a1 = glm::dot(p1._velocity, p1ToP2);
-                    //float a2 = glm::dot(p2._velocity, p1ToP2);
-                    double a1 = glm::dot(p1Velocity, lineOfContact);
-                    double a2 = glm::dot(p2Velocity, lineOfContact);
+                    float a1 = glm::dot(p1._velocity, p1ToP2);
+                    float a2 = glm::dot(p2._velocity, p1ToP2);
 
                     // ??what else do I call it??
-                    //float fraction = (2.0f * (a1 - a2)) / (p1._mass + p2._mass);
-                    double fraction = (2.0f * (a1 - a2)) / (p1Mass + p2Mass);
+                    float fraction = (2.0f * (a1 - a2)) / (p1._mass + p2._mass);
 
-                    //glm::vec2 v1Prime = p1._velocity - (fraction * p2._mass) * normalizedLineOfContact;
-                    //glm::vec2 v2Prime = p2._velocity + (fraction * p1._mass) * normalizedLineOfContact;
-                    glm::dvec2 v1Prime = p1Velocity - (fraction * p2Mass) * normalizedLineOfContact;
-                    glm::dvec2 v2Prime = p2Velocity + (fraction * p1Mass) * normalizedLineOfContact;
-
-                    double l1 = glm::length(p1Velocity);
-                    double l2 = glm::length(p2Velocity);
-                    //float rho1Initial = (p1._mass * glm::length(p1._velocity));
-                    //float rho2Initial = (p2._mass * glm::length(p2._velocity));
-                    double rho1Initial = (p1Mass * glm::length(p1Velocity));
-                    double rho2Initial = (p2Mass * glm::length(p2Velocity));
-                    l1 = glm::length(v1Prime);
-                    l2 = glm::length(v2Prime);
-                    //float rho1Final = (p1._mass * glm::length(v1Prime));
-                    //float rho2Final = (p2._mass * glm::length(v2Prime));
-                    double rho1Final = (p1Mass * glm::length(v1Prime));
-                    double rho2Final = (p2Mass * glm::length(v2Prime));
-
-                    double initialMomentum = rho1Initial + rho2Initial;
-                    double finalMomentum = rho1Final + rho2Final;
-                    double momentumDelta = finalMomentum - initialMomentum;
-                    if (momentumDelta > 0.0001 ||
-                        momentumDelta < -0.0001)
-                    {
-                        printf("momentum delta: %lf\n", momentumDelta);
-                    }
+                    // keep the intermediate "prime" values around for debugging
+                    glm::vec2 v1Prime = p1._velocity - (fraction * p2._mass) * normalizedLineOfContact;
+                    glm::vec2 v2Prime = p2._velocity + (fraction * p1._mass) * normalizedLineOfContact;
 
                     p1._velocity = v1Prime;
                     p2._velocity = v2Prime;

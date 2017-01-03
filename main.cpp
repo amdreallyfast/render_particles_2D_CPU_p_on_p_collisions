@@ -229,16 +229,19 @@ Creator:    John Cox (1-2-2017)
 -----------------------------------------------------------------------------------------------*/
 void UpdateAllTheThings()
 {
+    // just hard-code it for this demo
+    float deltaTimeSec = 0.01f;
+
     // update particle positions and check bounds
     gParticleUpdater.Update(gParticleStorage._allParticles, 0,
-        gParticleStorage._allParticles.size(), 0.01f);
+        gParticleStorage._allParticles.size(), deltaTimeSec);
 
     // update quad tree
     gParticleQuadTree.ResetTree();
     gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
 
     // check for collisions
-    gParticleQuadTree.DoTheParticleParticleCollisions(gParticleStorage._allParticles);
+    gParticleQuadTree.DoTheParticleParticleCollisions(gParticleStorage._allParticles, deltaTimeSec);
 
     // tell glut to call this display() function again on the next iteration of the main loop
     // Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does
