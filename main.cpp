@@ -78,7 +78,8 @@ glm::mat4 gRegionTransformMatrix;
 
 // in a bigger program, ??where would particle stuff be stored??
 IParticleEmitter *gpParticleEmitterPoint;
-IParticleEmitter *gpParticleEmitterBar;
+IParticleEmitter *gpParticleEmitterBar1;
+IParticleEmitter *gpParticleEmitterBar2;
 ParticleUpdater gParticleUpdater;
 ParticleQuadTree gParticleQuadTree;
 
@@ -181,13 +182,21 @@ void Init()
     // stick the emitter bar on the left side of the circle, have it emit right, and make the 
     // particles slow compared to the point emitter 
     // Note: Have to use vec4s instead of vec2s because glm::translate(...) only spits out mat4.
-    glm::vec2 barP1 = glm::vec2(-0.2f, +0.1f);
-    glm::vec2 barP2 = glm::vec2(-0.2f, -0.1f);
-    glm::vec2 emitDirection(+1.0f, 0.0f);
+    glm::vec2 bar1P1 = glm::vec2(-0.3f, +0.1f);
+    glm::vec2 bar1P2 = glm::vec2(-0.3f, -0.1f);
+    glm::vec2 emitDirection1(+1.0f, 0.5f);
     float minVel = 0.1f;
     float maxVel = 0.3f;
-    gpParticleEmitterBar = new ParticleEmitterBar(barP1, barP2, emitDirection, minVel, maxVel);
-    gpParticleEmitterBar->SetTransform(gRegionTransformMatrix);
+    gpParticleEmitterBar1 = new ParticleEmitterBar(bar1P1, bar1P2, emitDirection1, minVel, maxVel);
+    gpParticleEmitterBar1->SetTransform(gRegionTransformMatrix);
+
+    // a bar emitting particles in a colliding direction
+    glm::vec2 bar2P1 = glm::vec2(+0.3f, +0.1f);
+    glm::vec2 bar2P2 = glm::vec2(+0.3f, -0.1f);
+    glm::vec2 emitDirection2(-1.0f, 0.5f);
+    gpParticleEmitterBar2 = new ParticleEmitterBar(bar2P1, bar2P2, emitDirection2, minVel, maxVel);
+    gpParticleEmitterBar2->SetTransform(gRegionTransformMatrix);
+
 
     // starting up the particle storage
     // Note: The shader is needed for the particle storage because the Init(...) method sets up 
@@ -196,8 +205,9 @@ void Init()
 
     // starting up the particle updater
     gParticleUpdater.SetRegion(particleRegionCenter, particleRegionRadius);
-    gParticleUpdater.AddEmitter(gpParticleEmitterBar, 10);
-    gParticleUpdater.AddEmitter(gpParticleEmitterPoint, 10);
+    gParticleUpdater.AddEmitter(gpParticleEmitterBar1, 5);
+    gParticleUpdater.AddEmitter(gpParticleEmitterBar2, 5);
+    //gParticleUpdater.AddEmitter(gpParticleEmitterPoint, 10);
     gParticleUpdater.ResetAllParticles(gParticleStorage._allParticles);
     
     // starting up the particle quad tree
@@ -219,12 +229,16 @@ Creator:    John Cox (1-2-2017)
 -----------------------------------------------------------------------------------------------*/
 void UpdateAllTheThings()
 {
+    // update particle positions and check bounds
     gParticleUpdater.Update(gParticleStorage._allParticles, 0,
         gParticleStorage._allParticles.size(), 0.01f);
 
+    // update quad tree
     gParticleQuadTree.ResetTree();
     gParticleQuadTree.AddParticlestoTree(&(gParticleStorage._allParticles));
-    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
+
+    // check for collisions
+    gParticleQuadTree.DoTheParticleParticleCollisions(gParticleStorage._allParticles);
 
     // tell glut to call this display() function again on the next iteration of the main loop
     // Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does
@@ -275,6 +289,7 @@ void Display()
     // Note: The quad tree nodes' locations are based on an already-transformed center point and 
     // on particle locations, which don't have a transform.  But the geometry shader needs a 
     // transform, so give it the identity matrix to make it happy.
+    gParticleQuadTree.GenerateGeometry(&gQuadTreeGeometry);
     gQuadTreeGeometry.UpdateBufferData();
     glUniformMatrix4fv(gUnifMatrixTransformLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
     glBindVertexArray(gQuadTreeGeometry._vaoId);
@@ -425,7 +440,8 @@ void CleanupAll()
 {
     // Note: If I attempt to delete an ID that has already been deleted, that is ok.  OpenGL
     // will silently swallow that.
-    delete(gpParticleEmitterBar);
+    delete(gpParticleEmitterBar1);
+    delete(gpParticleEmitterBar2);
     delete(gpParticleEmitterPoint);
 }
 

@@ -1,6 +1,7 @@
 
 #include "ParticleQuadTree.h"
 #include "glload/include/glload/gl_4_4.h"   // for GL draw style in GenerateGeometry(...)
+#include "glm/detail/func_geometric.hpp" // for normalizing glm vectors
 
 
 
@@ -267,6 +268,111 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> *particleCollect
     }
 }
 
+// TODO: header
+void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection) const
+{
+    for (int nodeIndex = 0; nodeIndex < _numNodesInUse; nodeIndex++)
+    {
+        const QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
+        
+        if (!node._inUse || node._isSubdivided || node._numCurrentParticles == 0)
+        {
+            // does not contain any particles
+            continue;
+        }
+
+        // check all particles in the node for collisions against all other particles in the node
+        // Note: The -1 prevents array overrun with the inner loop that starts at particleCount + 1.
+        for (int particleCount = 0; 
+            particleCount < (node._numCurrentParticles - 1); 
+            particleCount++)
+        {
+            int particle1Index = node._indicesForContainedParticles[particleCount];
+            Particle &p1 = particleCollection[particle1Index];
+
+            for (int particleCompareCount = particleCount + 1; 
+                particleCompareCount < node._numCurrentParticles; 
+                particleCompareCount++)
+            {
+                int particle2Index = node._indicesForContainedParticles[particleCompareCount];
+                Particle &p2 = particleCollection[particle2Index];
+
+                glm::vec2 p1ToP2 = p2._position - p1._position;
+
+                // partial pythagorean theorem
+                float distanceBetweenSqr = (p1ToP2.x * p1ToP2.x) + (p1ToP2.y * p1ToP2.y);
+
+                float minDistanceForCollisionSqr = (p1._radiusOfInfluence + p2._radiusOfInfluence);
+                minDistanceForCollisionSqr = minDistanceForCollisionSqr * minDistanceForCollisionSqr;
+
+                if (distanceBetweenSqr < minDistanceForCollisionSqr)
+                {
+                    // elastic collision with conservation of momentum
+                    // Note: For an elastic collision between two particles of equal mass, the 
+                    // velocities of the two will be exchanged.  I could use this simplified 
+                    // idea for this demo, but I want to eventually have the option of different 
+                    // masses of particles, so I will use the general case elastic collision 
+                    // calculations (bottom of page at link).
+                    // http://hyperphysics.phy-astr.gsu.edu/hbase/colsta.html
+
+                    // for elastic collisions between two masses (ignoring rotation because 
+                    // these particles are points), use the calculations from this article (I 
+                    // followed them on paper too and it seems legit)
+                    // http://www.gamasutra.com/view/feature/3015/pool_hall_lessons_fast_accurate_.php?page=3
+
+                    glm::dvec2 p1Velocity(p1._velocity);
+                    glm::dvec2 p2Velocity(p2._velocity);
+                    double p1Mass = p1._mass;
+                    double p2Mass = p2._mass;
+                    glm::dvec2 lineOfContact(p1ToP2);
+                    glm::dvec2 normalizedLineOfContact = glm::normalize(lineOfContact);
+
+                    //glm::vec2 normalizedLineOfContact = glm::normalize(lineOfContact);
+
+                    //float a1 = glm::dot(p1._velocity, p1ToP2);
+                    //float a2 = glm::dot(p2._velocity, p1ToP2);
+                    double a1 = glm::dot(p1Velocity, lineOfContact);
+                    double a2 = glm::dot(p2Velocity, lineOfContact);
+
+                    // ??what else do I call it??
+                    //float fraction = (2.0f * (a1 - a2)) / (p1._mass + p2._mass);
+                    double fraction = (2.0f * (a1 - a2)) / (p1Mass + p2Mass);
+
+                    //glm::vec2 v1Prime = p1._velocity - (fraction * p2._mass) * normalizedLineOfContact;
+                    //glm::vec2 v2Prime = p2._velocity + (fraction * p1._mass) * normalizedLineOfContact;
+                    glm::dvec2 v1Prime = p1Velocity - (fraction * p2Mass) * normalizedLineOfContact;
+                    glm::dvec2 v2Prime = p2Velocity + (fraction * p1Mass) * normalizedLineOfContact;
+
+                    double l1 = glm::length(p1Velocity);
+                    double l2 = glm::length(p2Velocity);
+                    //float rho1Initial = (p1._mass * glm::length(p1._velocity));
+                    //float rho2Initial = (p2._mass * glm::length(p2._velocity));
+                    double rho1Initial = (p1Mass * glm::length(p1Velocity));
+                    double rho2Initial = (p2Mass * glm::length(p2Velocity));
+                    l1 = glm::length(v1Prime);
+                    l2 = glm::length(v2Prime);
+                    //float rho1Final = (p1._mass * glm::length(v1Prime));
+                    //float rho2Final = (p2._mass * glm::length(v2Prime));
+                    double rho1Final = (p1Mass * glm::length(v1Prime));
+                    double rho2Final = (p2Mass * glm::length(v2Prime));
+
+                    double initialMomentum = rho1Initial + rho2Initial;
+                    double finalMomentum = rho1Final + rho2Final;
+                    double momentumDelta = finalMomentum - initialMomentum;
+                    if (momentumDelta > 0.0001 ||
+                        momentumDelta < -0.0001)
+                    {
+                        printf("momentum delta: %lf\n", momentumDelta);
+                    }
+
+                    p1._velocity = v1Prime;
+                    p2._velocity = v2Prime;
+                }
+            }
+        }
+    }
+}
+
 /*-----------------------------------------------------------------------------------------------
 Description:
     Generates lines for the bounds of all nodes in use.  Used to draw a visualization of the 
@@ -306,7 +412,7 @@ void ParticleQuadTree::GenerateGeometry(GeometryData *putDataHere, bool firstTim
     else
     {
         unsigned short vertexIndex = 0;
-        for (size_t nodeCounter = 0; nodeCounter < _numNodesInUse; nodeCounter++)
+        for (int nodeCounter = 0; nodeCounter < _numNodesInUse; nodeCounter++)
         {
             QuadTreeNode &node = _allQuadTreeNodes[nodeCounter];
 
@@ -557,7 +663,7 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
     childBottomLeft._bottomEdge = node._bottomEdge;
 
     // add all particles to children
-    for (size_t particleCount = 0; particleCount < node._numCurrentParticles; particleCount++)
+    for (int particleCount = 0; particleCount < node._numCurrentParticles; particleCount++)
     {
         int particleIndex = node._indicesForContainedParticles[particleCount];
         Particle &p = (*allParticles)[particleIndex];
@@ -597,17 +703,10 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex)
 
         // not actually necessary because the array will be run over on the next update, but I 
         // still like to clean up after myself in case of debugging
-        node._indicesForContainedParticles[particleCount] = 0;
+        node._indicesForContainedParticles[particleCount] = -1;
     }
 
     node._numCurrentParticles = 0;
-
-    if (node._childNodeIndexTopLeft == -1)
-    {
-        printf("");
-    }
-
-
 
     // all went well
     return true;

@@ -119,15 +119,16 @@ void ParticleUpdater::Update(std::vector<Particle> &particleCollection,
     for (size_t particleIndex = startIndex; particleIndex < endIndex; particleIndex++)
     {
         Particle &pCopy = particleCollection[particleIndex];
-        if (ParticleOutOfBounds(pCopy))
-        {
-            pCopy._isActive = false;
-        }
 
         if (pCopy._isActive)
         {
             numActiveParticles++;
             pCopy._position = pCopy._position + (pCopy._velocity * deltaTimeSec);
+
+            if (ParticleOutOfBounds(pCopy))
+            {
+                pCopy._isActive = false;
+            }
         }
         else if (emitterIndex < MAX_EMITTERS)   // also implicitly, "is active" is false
         {
@@ -219,7 +220,7 @@ bool ParticleUpdater::ParticleOutOfBounds(const Particle &p) const
 {
     glm::vec2 regionCenterToParticle = p._position - _particleRegionCenter;
 
-    // partial pythagorean's theorem
+    // partial pythagorean theorem
     float distToParticleSqr = (regionCenterToParticle.x * regionCenterToParticle.x) +
         (regionCenterToParticle.y * regionCenterToParticle.y);
     if (distToParticleSqr > _particleRegionRadiusSqr)

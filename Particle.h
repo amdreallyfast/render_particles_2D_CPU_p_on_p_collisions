@@ -12,8 +12,10 @@ Creator:    John Cox (7-2-2016)
 -----------------------------------------------------------------------------------------------*/
 struct Particle
 {
-    Particle() : 
+    Particle() :
         // glm structures already have "set to 0" constructors
+        _mass(0.1f),
+        _radiusOfInfluence(0.02f),
         _currentQuadTreeIndex(0),
         _isActive(0)
     {
@@ -21,6 +23,13 @@ struct Particle
 
     glm::vec2 _position;
     glm::vec2 _velocity;
+
+    // all particles are identical for now
+    float _mass;
+
+    // used for collision detection because a particle's position is float values, so two 
+    // particles' positions are almost never going to be exactly equal
+    float _radiusOfInfluence;
 
     // TODO: get rid of this
     int _currentQuadTreeIndex;

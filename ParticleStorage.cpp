@@ -89,6 +89,22 @@ void ParticleStorage::Init(unsigned int programId, unsigned int numParticles)
     glEnableVertexAttribArray(vertexArrayIndex);
     glVertexAttribPointer(vertexArrayIndex, numItems, itemType, GL_FALSE, bytesPerStep, (void *)bufferStartOffset);
 
+    // mass
+    itemType = GL_FLOAT;
+    numItems = sizeof(Particle::_mass) / sizeof(float);
+    bufferStartOffset += sizeof(Particle::_velocity);
+    vertexArrayIndex++;
+    glEnableVertexAttribArray(vertexArrayIndex);
+    glVertexAttribPointer(vertexArrayIndex, numItems, itemType, GL_FALSE, bytesPerStep, (void *)bufferStartOffset);
+
+    // radius of influence
+    itemType = GL_FLOAT;
+    numItems = sizeof(Particle::_radiusOfInfluence) / sizeof(float);
+    bufferStartOffset += sizeof(Particle::_mass);
+    vertexArrayIndex++;
+    glEnableVertexAttribArray(vertexArrayIndex);
+    glVertexAttribPointer(vertexArrayIndex, numItems, itemType, GL_FALSE, bytesPerStep, (void *)bufferStartOffset);
+
     // ignoring the "is active" flag by not telling OpenGL that there is an item here 
     // Note: Does this waste bytes? Yes, but it would be more work to pluck out the position and 
     // velocity and make those contiguous in another data structure than it would be to simply 
