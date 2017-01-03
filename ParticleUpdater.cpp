@@ -74,7 +74,7 @@ Parameters:
                         emitters and then wanted to split the number of particles between these 
                         emitters.
     numToUpdate         Same idea as "start index".
-    deltatimeSec        Self-explanatory
+    deltaTimeSec        Self-explanatory
 Returns:    None
 Exception:  Safe
 Creator:    John Cox (7-4-2016)

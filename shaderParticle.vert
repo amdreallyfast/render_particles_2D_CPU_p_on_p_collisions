@@ -7,6 +7,7 @@ layout (location = 0) in vec2 pos;
 // seconds)
 layout (location = 1) in vec2 vel;  
 
+// used to vary the color
 layout (location = 3) in int collisionCountThisFrame;
 
 
@@ -19,8 +20,7 @@ void main()
     float green = 0.0f;     // medium velocity
     float blue = 0.0f;      // low velocity
 
-    // linearly blend the particles based on the minimum and maximum particle velocities
-    // TODO: use forces instead
+    // linearly blend the color based on some kind of variable
 
 //    float min = 0.1f;
 //    float mid = 0.3f;
@@ -45,8 +45,8 @@ void main()
 //    }
 
     float min = 0;
-    float mid = 10;
-    float max = 20;
+    float mid = 15;
+    float max = 30;
     
     float value = collisionCountThisFrame;
     if (value < mid)

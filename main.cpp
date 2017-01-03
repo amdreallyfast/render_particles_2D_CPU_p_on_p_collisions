@@ -242,7 +242,7 @@ void UpdateAllTheThings()
     gParticleQuadTree.AddParticlestoTree(gParticleStorage._allParticles);
 
     // check for collisions
-    gParticleQuadTree.DoTheParticleParticleCollisions(gParticleStorage._allParticles, deltaTimeSec);
+    gParticleQuadTree.DoTheParticleParticleCollisions(deltaTimeSec, gParticleStorage._allParticles);
 
     // tell glut to call this display() function again on the next iteration of the main loop
     // Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does

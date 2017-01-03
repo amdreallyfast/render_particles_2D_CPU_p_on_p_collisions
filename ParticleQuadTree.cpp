@@ -259,8 +259,18 @@ void ParticleQuadTree::AddParticlestoTree(std::vector<Particle> &particleCollect
     }
 }
 
-// TODO: header
-void ParticleQuadTree::DoTheParticleParticleCollisions(std::vector<Particle> &particleCollection, float deltaTimeSec) const
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Is the root function of the particle-particle collisions.
+Parameters: 
+    deltaTimeSec        Self-explanatory.
+    particleCollection  A container for all particles in use by this program.
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (12-17-2016)
+-----------------------------------------------------------------------------------------------*/
+void ParticleQuadTree::DoTheParticleParticleCollisions(float deltaTimeSec, 
+    std::vector<Particle> &particleCollection) const
 {
     for (int nodeIndex = 0; nodeIndex < _numNodesInUse; nodeIndex++)
     {
@@ -631,9 +641,20 @@ bool ParticleQuadTree::SubdivideNode(int nodeIndex, std::vector<Particle> &parti
     return true;
 }
 
-
-// TODO: header
-void ParticleQuadTree::ParticleCollisionsWithinNode(int nodeIndex, float deltaTimeSec, std::vector<Particle> &particleCollection) const
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Governs the particle-particle collisions within this node and for each particle with the 
+    node's neighbor, if necessary.
+Parameters: 
+    nodeIndex       The quad tree node whose particles will be collided.
+    deltaTimeSec    Self-explanatory.
+    particleCollection  Self-explanatory.
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (1-3-2017)
+-----------------------------------------------------------------------------------------------*/
+void ParticleQuadTree::ParticleCollisionsWithinNode(int nodeIndex, float deltaTimeSec, 
+    std::vector<Particle> &particleCollection) const
 {
     const QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
 
@@ -752,8 +773,21 @@ void ParticleQuadTree::ParticleCollisionsWithinNode(int nodeIndex, float deltaTi
     }
 }
 
-// TODO: header
-void ParticleQuadTree::ParticleCollisionsWithNeighboringNode(int particleIndex, int nodeIndex, float deltaTimeSec, std::vector<Particle> &particleCollection) const
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Governs the particle-particle collisions of a single particle with all the particles in 
+    another node.  This is used for particle-particle collisions with a neighboring node.
+Parameters: 
+    particleIndex   The particle to check.
+    nodeIndex       The quad tree node whose particles will be collided.
+    deltaTimeSec    Self-explanatory.
+    particleCollection  Self-explanatory.
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (1-3-2017)
+-----------------------------------------------------------------------------------------------*/
+void ParticleQuadTree::ParticleCollisionsWithNeighboringNode(int particleIndex, int nodeIndex, 
+    float deltaTimeSec, std::vector<Particle> &particleCollection) const
 {
     const QuadTreeNode &node = _allQuadTreeNodes[nodeIndex];
 
@@ -768,20 +802,21 @@ void ParticleQuadTree::ParticleCollisionsWithNeighboringNode(int particleIndex, 
 
 }
 
-float inline FastInverseSquareRoot(float x)
-{
-    float xHalf = 0.5f * x;
-    int i = *(int *)&x;
-    i = 0x5f3759df - (i >> 1);
-    x = *(float *)&i;
-    x = x *(1.5f - (xHalf * x * x));
-
-    return x;
-}
-
-// TODO: header
-// Calculates and adds force for P1 on P2 and P2 on P1.  An N^2 particle collision approach will result in duplicate force calculations.  
-void ParticleQuadTree::ParticleCollisionP1WithP2(int p1Index, int p2Index, float deltaTimeSec, std::vector<Particle> &particleCollection) const
+/*-----------------------------------------------------------------------------------------------
+Description:
+    Calculates and adds force for P1 on P2 and P2 on P1.  An N^2 particle collision approach 
+    will result in duplicate force calculations.  
+Parameters: 
+    p1Index     Self-explanatory
+    p2Index     Self-explanatory
+    deltaTimeSec    Self-explanatory.
+    particleCollection  Self-explanatory.
+Returns:    None
+Exception:  Safe
+Creator:    John Cox (1-3-2017)
+-----------------------------------------------------------------------------------------------*/
+void ParticleQuadTree::ParticleCollisionP1WithP2(int p1Index, int p2Index, float deltaTimeSec, 
+    std::vector<Particle> &particleCollection) const
 {
     Particle &p1 = particleCollection[p1Index];
     Particle &p2 = particleCollection[p2Index];
@@ -809,9 +844,9 @@ void ParticleQuadTree::ParticleCollisionP1WithP2(int p1Index, int p2Index, float
         // followed them on paper too and it seems legit)
         // http://www.gamasutra.com/view/feature/3015/pool_hall_lessons_fast_accurate_.php?page=3
 
-        //glm::vec2 normalizedLineOfContact = glm::normalize(p1ToP2);
-        float lineOfContactMagnitudeSqr = glm::dot(p1ToP2, p1ToP2);
-        glm::vec2 normalizedLineOfContact = p1ToP2 * FastInverseSquareRoot(lineOfContactMagnitudeSqr);
+        // Note: I tried using a fast inverse square root calculation instead, but it didn't 
+        // seem to save any frames, so I'm just using GLM's normalize.
+        glm::vec2 normalizedLineOfContact = glm::normalize(p1ToP2);
 
         float a1 = glm::dot(p1._velocity, p1ToP2);
         float a2 = glm::dot(p2._velocity, p1ToP2);

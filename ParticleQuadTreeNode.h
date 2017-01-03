@@ -2,7 +2,7 @@
 
 #include <memory>
 
-const unsigned int MAX_PARTICLES_PER_QUAD_TREE_NODE = 50;
+const unsigned int MAX_PARTICLES_PER_QUAD_TREE_NODE = 25;
 
 /*-----------------------------------------------------------------------------------------------
 Description:
